@@ -61,6 +61,13 @@
             <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Bit's RPS -->
+        <dependency>
+            <groupId>net.bitbylogic</groupId>
+            <artifactId>bits-rps</artifactId>
+            <version>2024.12</version>
+        </dependency>
     </dependencies>
 
 </project>

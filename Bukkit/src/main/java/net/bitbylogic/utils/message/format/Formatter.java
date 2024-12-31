@@ -3,6 +3,8 @@ package net.bitbylogic.utils.message.format;
 import lombok.Getter;
 import lombok.NonNull;
 import me.clip.placeholderapi.PlaceholderAPI;
+import net.bitbylogic.rps.client.RedisClient;
+import net.bitbylogic.rps.listener.ListenerComponent;
 import net.bitbylogic.utils.Placeholder;
 import net.bitbylogic.utils.StringModifier;
 import net.bitbylogic.utils.TimeConverter;
@@ -267,11 +269,10 @@ public class Formatter {
         player.sendMessage(format(formattedMessage));
     }
 
-    // TODO: Implement
-    public static void sendRedisMessage(UUID player, String message) {
-//        APIByLogic.getInstance().getRedisClient().sendListenerMessage(
-//                new ListenerComponent(null, "abl-message")
-//                        .addData("uuid", player).addData("message", message));
+    public static void sendRedisMessage(@NonNull RedisClient redisClient, UUID player, String message) {
+        redisClient.sendListenerMessage(
+                new ListenerComponent(null, "abl-message")
+                        .addData("uuid", player).addData("message", message));
     }
 
     public static void sendRawMessage(Player player, String message, Placeholder... placeholders) {
