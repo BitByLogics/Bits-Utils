@@ -5,11 +5,16 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.bitbylogic</groupId>
-    <artifactId>bits-template</artifactId>
+    <artifactId>bits-utils</artifactId>
     <version>2024.12</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
-    <name>Bit's Template</name>
+    <name>Bit's Utils</name>
+
+    <modules>
+        <module>Common</module>
+        <module>Bukkit</module>
+    </modules>
 
     <properties>
         <java.version>21</java.version>
@@ -52,7 +57,7 @@
         <repository>
             <id>github</id>
             <name>GitHub BitByLogics Maven Packages</name>
-            <url>https://maven.pkg.github.com/bitbylogics/bits-template</url>
+            <url>https://maven.pkg.github.com/bitbylogics/bits-utils</url>
         </repository>
     </distributionManagement>
 
