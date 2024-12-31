@@ -14,10 +14,12 @@ public class DependencyManager {
 
     private final HashMap<Class<?>, Object> dependencies;
     private final HashMap<Class<?>, List<Object>> missingDependencies;
+    private final List<DependencyListener> dependencyListeners;
 
     public DependencyManager() {
         this.dependencies = new HashMap<>();
         this.missingDependencies = new HashMap<>();
+        this.dependencyListeners = new ArrayList<>();
 
         registerDependency(this.getClass(), this);
     }
@@ -127,6 +129,11 @@ public class DependencyManager {
         }
 
         return Set.copyOf(dependencyMethods);
+    }
+
+    public void registerListener(@NonNull DependencyListener listener) {
+        dependencyListeners.add(listener);
+        dependencies.forEach(listener::onRegistered);
     }
 
 }
