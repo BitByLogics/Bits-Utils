@@ -319,8 +319,39 @@ public class ItemStackUtil {
         return EntityType.valueOf(item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin, "bits_spawner"), PersistentDataType.STRING));
     }
 
+    public static <P, C> void addPersistentData(@NonNull ItemStack item, @NonNull NamespacedKey key, @NonNull PersistentDataType<P, C> dataType, C value) {
+        ItemMeta meta = item.getItemMeta();
+
+        if(meta == null) {
+            return;
+        }
+
+        meta.getPersistentDataContainer().set(key, dataType, value);
+        item.setItemMeta(meta);
+    }
+
     public static boolean hasPersistentData(ItemStack itemStack, String key) {
         return itemStack.getItemMeta().getPersistentDataContainer().getKeys().stream().anyMatch(pKey -> pKey.getKey().equalsIgnoreCase(key));
+    }
+
+    public static boolean hasPersistentData(@NonNull ItemStack item, @NonNull NamespacedKey key) {
+        ItemMeta meta = item.getItemMeta();
+
+        if(meta == null) {
+            return false;
+        }
+
+        return meta.getPersistentDataContainer().has(key);
+    }
+
+    public static <P, C> Optional<C> getPersistentData(@NonNull ItemStack item, @NonNull NamespacedKey key, @NonNull PersistentDataType<P, C> dataType) {
+        ItemMeta meta = item.getItemMeta();
+
+        if(meta == null || !hasPersistentData(item, key)) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(meta.getPersistentDataContainer().get(key, dataType));
     }
 
     public static <T, Z> boolean persistentDataMatches(ItemStack itemStack, PersistentDataType<T, Z> type, Z value) {
