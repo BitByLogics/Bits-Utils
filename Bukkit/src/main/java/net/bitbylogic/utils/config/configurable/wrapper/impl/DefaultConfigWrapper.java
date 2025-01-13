@@ -15,7 +15,7 @@ public class DefaultConfigWrapper implements ConfigWrapper<Object> {
     @Override
     public void wrap(@NonNull Object object, @NonNull String path, @NonNull FileConfiguration config) {
         if (object instanceof ItemStack) {
-            ConfigurationSection section = config.getConfigurationSection(path) == null ? config.getConfigurationSection(path) : config.createSection(path);
+            ConfigurationSection section = config.getConfigurationSection(path) == null ? config.createSection(path) : config.getConfigurationSection(path);
 
             if(section == null) {
                 return;
