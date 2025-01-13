@@ -6,7 +6,7 @@
 
     <groupId>net.bitbylogic</groupId>
     <artifactId>bits-utils</artifactId>
-    <version>2024.12</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <name>Bit's Utils</name>
@@ -52,14 +52,6 @@
     <repositories>
 
     </repositories>
-
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub BitByLogics Maven Packages</name>
-            <url>https://maven.pkg.github.com/bitbylogics/bits-utils</url>
-        </repository>
-    </distributionManagement>
 
     <dependencies>
         <!-- IntelliJ Annotations -->

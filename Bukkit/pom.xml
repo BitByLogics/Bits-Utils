@@ -6,7 +6,7 @@
     <parent>
         <groupId>net.bitbylogic</groupId>
         <artifactId>bits-utils</artifactId>
-        <version>2024.12</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>bits-utils-bukkit</artifactId>
@@ -24,11 +24,10 @@
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
 
-        <!-- Bit's Repos -->
+        <!-- JitPack -->
         <repository>
-            <id>github</id>
-            <name>GitHub BitByLogics Maven Packages</name>
-            <url>https://maven.pkg.github.com/bitbylogics/*</url>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
         </repository>
 
         <!-- PlaceholderAPI -->
@@ -51,7 +50,7 @@
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-common</artifactId>
-            <version>2024.12</version>
+            <version>1.0.0</version>
         </dependency>
 
         <!-- PlaceholderAPI -->
@@ -64,9 +63,10 @@
 
         <!-- Bit's RPS -->
         <dependency>
-            <groupId>net.bitbylogic</groupId>
-            <artifactId>bits-rps</artifactId>
-            <version>2024.12</version>
+            <groupId>com.github.bitbylogics</groupId>
+            <artifactId>Bits-RPS</artifactId>
+            <version>1.0.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
