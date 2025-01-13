@@ -24,6 +24,12 @@
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
 
+        <!-- JitPack -->
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+
         <!-- PlaceholderAPI -->
         <repository>
             <id>placeholderapi</id>
@@ -42,7 +48,7 @@
 
         <!-- Bit's Utils -->
         <dependency>
-            <groupId>com.github.BitByLogics.Bits-Utils</groupId>
+            <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-common</artifactId>
             <version>1.0.0</version>
         </dependency>
