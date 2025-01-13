@@ -28,7 +28,6 @@ public class Configurable {
     @Setter
     private String globalPrefix;
 
-
     public Configurable(@NonNull File configFile, @NonNull String globalPrefix, @NonNull Pair<Object, Object>... defaultValues) {
         this.configFile = configFile;
         this.globalPrefix = globalPrefix;
@@ -79,6 +78,11 @@ public class Configurable {
 
     protected static Pair<Object, Object> pair(Object key, Object value) {
         return new Pair<>(key, value);
+    }
+
+    public void addConfigValue(@NonNull Object key, @NonNull Object value) {
+        ConfigKeyData configKeyData = key instanceof ConfigKeyData ? (ConfigKeyData) key : ConfigKeyData.of(key.toString());
+        configValues.put(configKeyData, value);
     }
 
     public void loadConfigPaths() {
