@@ -402,7 +402,7 @@ public class Formatter {
     }
 
     public static String centerMessage(String message) {
-        String sanitizedString = ChatColor.translateAlternateColorCodes('&', message);
+        String sanitizedString = color(message);
 
         int messagePxSize = 0;
         boolean previousCode = false;

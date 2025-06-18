@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Getter
 public class DependencyManager {
@@ -53,6 +54,16 @@ public class DependencyManager {
                 e.printStackTrace();
             }
         });
+    }
+
+    public boolean isDependencyRegistered(@NonNull Class<?> clazz) {
+        return dependencies.containsKey(clazz);
+    }
+
+    public List<Class<?>> getDependencies(@NonNull Object object, boolean deepCheck) {
+        return getDependencyFields(object, deepCheck).stream()
+                .map(field -> (Class<?>) field.getType())
+                .collect(Collectors.toList());
     }
 
     private void injectFieldDependencies(@NonNull Object object, boolean deepInjection) {

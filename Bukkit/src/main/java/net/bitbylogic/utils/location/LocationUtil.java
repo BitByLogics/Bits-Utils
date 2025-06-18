@@ -200,4 +200,20 @@ public class LocationUtil {
         return location;
     }
 
+    public static double distance(@NonNull Location location, @NonNull Location other) {
+        double dx = location.getX() - other.getX();
+        double dy = location.getY() - other.getY();
+        double dz = location.getZ() - other.getZ();
+
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    public static Location getCenterBetween(@NonNull Location location, @NonNull Location other) {
+        double centerX = (location.getX() + other.getX()) / 2.0;
+        double centerY = (location.getY() + other.getY()) / 2.0;
+        double centerZ = (location.getZ() + other.getZ()) / 2.0;
+
+        return new Location(location.getWorld(), centerX, centerY, centerZ);
+    }
+
 }

@@ -42,7 +42,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.21.1-R0.1-SNAPSHOT</version>
+            <version>1.21.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -50,6 +50,13 @@
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-common</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <!-- Bit's Utils Paper -->
+        <dependency>
+            <groupId>net.bitbylogic</groupId>
+            <artifactId>bits-utils-paper</artifactId>
             <version>1.0.0</version>
         </dependency>
 

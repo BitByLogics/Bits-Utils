@@ -3,9 +3,12 @@ package net.bitbylogic.utils;
 import lombok.Getter;
 
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 @Getter
 public class Placeholder implements StringModifier {
+
+    private static final Logger LOGGER = Logger.getLogger("BitsUtils");
 
     private final HashMap<String, String> placeholderMap = new HashMap<>();
 
@@ -33,6 +36,11 @@ public class Placeholder implements StringModifier {
         String modifiedString = string;
 
         for (String key : placeholderMap.keySet()) {
+            if(placeholderMap.get(key) == null) {
+                LOGGER.warning("Skipping placeholder '" + key + "', mapped to null value.");
+               continue;
+            }
+
             modifiedString = modifiedString.replace(key, placeholderMap.get(key));
         }
 

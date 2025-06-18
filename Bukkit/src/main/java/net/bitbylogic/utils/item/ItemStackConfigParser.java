@@ -2,22 +2,27 @@ package net.bitbylogic.utils.item;
 
 import com.google.common.collect.Lists;
 import lombok.NonNull;
+import net.bitbylogic.utils.EnumUtil;
 import net.bitbylogic.utils.NumberUtil;
 import net.bitbylogic.utils.config.ConfigParser;
 import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.server.ServerUtil;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.meta.components.EquippableComponent;
+import org.bukkit.inventory.meta.components.FoodComponent;
+import org.bukkit.inventory.meta.components.ToolComponent;
+import org.bukkit.inventory.meta.components.consumable.ConsumableComponent;
+import org.bukkit.inventory.meta.components.consumable.effects.ConsumableEffect;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -57,17 +62,14 @@ public class ItemStackConfigParser implements ConfigParser<ItemStack> {
 
         meta.setLore(lore);
 
-        // Add flags to hide potion effects/attributes
-        section.getStringList("Flags").forEach(flag -> {
-            meta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
-        });
+        meta.setMaxStackSize(section.getInt("Max-Stack-Size", meta.hasMaxStackSize() ? meta.getMaxStackSize() : 64));
 
         // Add persistent data keys
         if (!section.getStringList("Custom-Data").isEmpty()) {
-            section.getStringList("Custom-Data").forEach(data -> {
+            for (String data : section.getStringList("Custom-Data")) {
                 String[] splitData = data.split(":");
                 meta.getPersistentDataContainer().set(new NamespacedKey(splitData[0], splitData[1]), PersistentDataType.STRING, splitData[2]);
-            });
+            }
         }
 
         // Make the item glow
@@ -82,13 +84,11 @@ public class ItemStackConfigParser implements ConfigParser<ItemStack> {
 
         // If leather armor, apply dye color if defined
         if (stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
-            LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) stack.getItemMeta();
+            LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) meta;
             java.awt.Color color = ChatColor.of(section.getString("Dye-Color", Formatter.colorToChatColor(Bukkit.getServer().getItemFactory().getDefaultLeatherColor()).toString())).getColor();
             leatherArmorMeta.setColor(Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()));
-            stack.setItemMeta(leatherArmorMeta);
+            meta = leatherArmorMeta;
         }
-
-        stack.setItemMeta(meta);
 
         // If the item is a potion, apply potion data
         if (stack.getType() == Material.SPLASH_POTION || stack.getType() == Material.POTION) {
@@ -96,7 +96,18 @@ public class ItemStackConfigParser implements ConfigParser<ItemStack> {
 
             if (potionSection != null) {
                 boolean vanilla = potionSection.getBoolean("Vanilla", false);
-                PotionMeta potionMeta = (PotionMeta) stack.getItemMeta();
+                PotionMeta potionMeta = (PotionMeta) meta;
+
+                if(potionSection.isSet("Color") && Formatter.getConfig().getHexPattern().pattern().matches(potionSection.getString("Color"))) {
+                    String hexColor = potionSection.getString("Color");
+
+                    int r = Integer.parseInt(hexColor.substring(0, 2), 16);
+                    int g = Integer.parseInt(hexColor.substring(2, 4), 16);
+                    int b = Integer.parseInt(hexColor.substring(4, 6), 16);
+
+                    potionMeta.setColor(Color.fromRGB(r, g, b));
+                }
+
                 String potionType = potionSection.getString("Type", "POISON");
 
                 if (vanilla) {
@@ -105,25 +116,25 @@ public class ItemStackConfigParser implements ConfigParser<ItemStack> {
                     potionMeta.addCustomEffect(new PotionEffect(PotionEffectType.getByName(potionType), potionSection.getInt("Duration", 20), potionSection.getInt("Amplifier", 1) - 1), true);
                 }
 
-                stack.setItemMeta(potionMeta);
+                meta = potionMeta;
             }
         }
 
         if (stack.getType() == Material.TIPPED_ARROW) {
-            PotionMeta potionMeta = (PotionMeta) stack.getItemMeta();
+            PotionMeta potionMeta = (PotionMeta) meta;
             potionMeta.setBasePotionType(PotionType.valueOf(section.getString("Arrow-Type", "POISON")));
-            stack.setItemMeta(potionMeta);
+            meta = potionMeta;
         }
 
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
-            SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
+            SkullMeta skullMeta = (SkullMeta) meta;
             skullMeta.setOwner(Formatter.format(section.getString("Skull-Name", "Notch")));
-            stack.setItemMeta(skullMeta);
+            meta = skullMeta;
         }
 
         if (section.getString("Skull-URL") != null) {
-            SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
+            SkullMeta skullMeta = (SkullMeta) meta;
             PlayerProfile skullProfile = Bukkit.createPlayerProfile("Notch");
             PlayerTextures textures = skullProfile.getTextures();
             textures.clear();
@@ -134,17 +145,108 @@ public class ItemStackConfigParser implements ConfigParser<ItemStack> {
             }
             skullProfile.setTextures(textures);
             skullMeta.setOwnerProfile(skullProfile);
-            stack.setItemMeta(skullMeta);
+            meta = skullMeta;
+        }
+
+        if(section.isSet("Glider")) {
+            meta.setGlider(section.getBoolean("Glider"));
         }
 
         // Used for resourcepacks, to display custom models
         if (section.getInt("Model-Data") != 0) {
-            ItemMeta updatedMeta = stack.getItemMeta();
-            updatedMeta.setCustomModelData(section.getInt("Model-Data"));
-            stack.setItemMeta(updatedMeta);
+            meta.setCustomModelData(section.getInt("Model-Data"));
         }
 
-        ItemMeta updatedMeta = stack.getItemMeta();
+        if(section.getString("Item-Model") != null) {
+            String[] itemModelData = section.getString("Item-Model").split(":");
+            meta.setItemModel(new NamespacedKey(itemModelData[0], itemModelData[1]));
+        }
+
+        if(section.getString("Tooltip-Style") != null) {
+            String[] tooltipModel = section.getString("Tooltip-Style").split(":");
+            meta.setTooltipStyle(new NamespacedKey(tooltipModel[0], tooltipModel[1]));
+        }
+
+        ConfigurationSection equippableSection = section.getConfigurationSection("Equippable-Options");
+
+        if (equippableSection != null) {
+            EquippableComponent component = meta.getEquippable();
+
+            if (equippableSection.contains("Slot")) {
+                component.setSlot(EquipmentSlot.valueOf(equippableSection.getString("Slot")));
+            }
+
+            if (equippableSection.contains("Model")) {
+                String[] model = equippableSection.getString("Model").split(":");
+                component.setModel(new NamespacedKey(model[0], model[1]));
+            }
+
+            if (equippableSection.contains("Camera-Overlay")) {
+                String[] overlay = equippableSection.getString("Camera-Overlay").split(":");
+                component.setCameraOverlay(new NamespacedKey(overlay[0], overlay[1]));
+            }
+
+            if (equippableSection.contains("Equip-Sound")) {
+                component.setEquipSound(Sound.valueOf(equippableSection.getString("Equip-Sound")));
+            }
+
+            if (equippableSection.contains("Allowed-Entities")) {
+                List<String> entityStrings = equippableSection.getStringList("Allowed-Entities");
+                List<org.bukkit.entity.EntityType> entities = new ArrayList<>();
+
+                for (String type : entityStrings) {
+                    try {
+                        entities.add(org.bukkit.entity.EntityType.valueOf(type));
+                    } catch (IllegalArgumentException ignored) {
+                        Bukkit.getLogger().warning("(ItemStackUtil): Skipped invalid EntityType '" + type + "' for EquippableComponent.");
+                    }
+                }
+
+                component.setAllowedEntities(entities);
+            }
+
+            component.setDispensable(equippableSection.getBoolean("Dispensable", false));
+            component.setSwappable(equippableSection.getBoolean("Swappable", false));
+            component.setDamageOnHurt(equippableSection.getBoolean("Damage-On-Hurt", false));
+
+            meta.setEquippable(component);
+        }
+
+        ConfigurationSection foodSection = section.getConfigurationSection("Food-Options");
+
+        if(foodSection != null) {
+            FoodComponent component = meta.getFood();
+
+            component.setCanAlwaysEat(foodSection.getBoolean("Can-Always-Eat", component.canAlwaysEat()));
+            component.setNutrition(foodSection.getInt("Nutrition", component.getNutrition()));
+            component.setSaturation(foodSection.getInt("Saturation", (int) component.getSaturation()));
+
+            meta.setFood(component);
+        }
+
+        ConfigurationSection toolSection = section.getConfigurationSection("Tool-Options");
+
+        if(toolSection != null) {
+            ToolComponent component = meta.getTool();
+
+            component.setDamagePerBlock(toolSection.getInt("Damage-Per-Block", component.getDamagePerBlock()));
+
+            toolSection.getStringList("Rules").forEach(s -> {
+                String[] ruleData = s.split(":");
+
+                if(ruleData.length < 3) {
+                    return;
+                }
+
+                component.addRule(EnumUtil.getValue(Material.class, ruleData[0], Material.OAK_LOG), Float.parseFloat(ruleData[1]), Boolean.parseBoolean(ruleData[2]));
+            });
+
+            component.setDefaultMiningSpeed(toolSection.getInt("Default-Mining-Speed", (int) component.getDefaultMiningSpeed()));
+
+            meta.setTool(component);
+        }
+
+        final ItemMeta finalMeta = meta;
 
         // Apply enchantments
         section.getStringList("Enchantments").forEach(enchant -> {
@@ -162,10 +264,33 @@ public class ItemStackConfigParser implements ConfigParser<ItemStack> {
                 return;
             }
 
-            updatedMeta.addEnchant(enchantment, level, true);
+            finalMeta.addEnchant(enchantment, level, true);
         });
 
-        stack.setItemMeta(updatedMeta);
+        for (String flag : section.getStringList("Flags")) {
+            finalMeta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
+        }
+
+        stack.setItemMeta(finalMeta);
+
+        ConfigurationSection consumableSection = section.getConfigurationSection("Consumable-Options");
+
+        if(consumableSection != null) {
+            if(ServerUtil.isPaper()) {
+                PaperConsumableProvider.provide(stack, consumableSection);
+            } else {
+                ConsumableComponent consumableComponent = meta.getConsumable();
+
+                consumableComponent.setConsumeSeconds(consumableSection.getInt("Consume-Seconds", 3));
+                consumableComponent.setConsumeParticles(consumableSection.getBoolean("Particles", true));
+
+                if(consumableSection.isSet("Sound")) {
+                    consumableComponent.setSound(Sound.valueOf(consumableSection.getString("Sound")));
+                }
+
+                meta.setConsumable(consumableComponent);
+            }
+        }
 
         return Optional.of(stack);
     }

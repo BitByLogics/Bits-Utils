@@ -39,15 +39,23 @@ public class HashMapUtil {
     public static <K, V> HashMap<K, V> mapFromString(ObjectWrapper<K, V> wrapper, String entrySeparator, String valueSeparator, String string) {
         HashMap<K, V> map = new HashMap<>();
 
-        if (string.isEmpty()) {
+        if (string == null || string.isEmpty()) {
             return map;
         }
 
         String[] mapData = string.split(Pattern.quote(entrySeparator));
 
         for (String dataString : mapData) {
-            String[] data = dataString.split(Pattern.quote(valueSeparator));
-            map.put(wrapper == null ? (K) data[0] : wrapper.wrapKey(data[0]), wrapper == null ? (V) data[1] : wrapper.wrapValue(data[1]));
+            String[] data = dataString.split(Pattern.quote(valueSeparator), 2);
+
+            if (data.length < 2) {
+                continue;
+            }
+
+            K key = wrapper == null ? (K) data[0] : wrapper.wrapKey(data[0]);
+            V value = wrapper == null ? (V) data[1] : wrapper.wrapValue(data[1]);
+
+            map.put(key, value);
         }
 
         return map;

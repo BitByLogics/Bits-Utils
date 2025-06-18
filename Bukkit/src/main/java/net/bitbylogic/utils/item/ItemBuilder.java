@@ -35,6 +35,8 @@ public class ItemBuilder {
         return new ItemBuilder(new ItemStack(material));
     }
 
+    public static ItemBuilder from(ItemStack item) { return new ItemBuilder(item); }
+
     public ItemBuilder name(String name) {
         ItemMeta stackMeta = item.getItemMeta();
         stackMeta.setDisplayName(Formatter.format(name));

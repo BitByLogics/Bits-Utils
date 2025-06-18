@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 @Getter
 @AllArgsConstructor
@@ -39,4 +40,17 @@ public class SafeLocation implements Serializable {
     public String toString() {
         return String.format("%s:%s:%s:%s", world, x, y, z);
     }
+
+    @Override
+    public boolean equals(Object object) {
+        if (object == null || getClass() != object.getClass()) return false;
+        SafeLocation that = (SafeLocation) object;
+        return Double.compare(x, that.x) == 0 && Double.compare(y, that.y) == 0 && Double.compare(z, that.z) == 0 && Objects.equals(world, that.world);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(world, x, y, z);
+    }
+
 }

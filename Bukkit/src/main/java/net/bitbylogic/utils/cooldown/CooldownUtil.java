@@ -29,7 +29,7 @@ public class CooldownUtil {
             List<Cooldown> updatedCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
             updatedCooldowns.remove(cooldown);
             COOLDOWNS.put(identifier, updatedCooldowns);
-        }, unit.toSeconds(expireTime) * 20);
+        }, unit.toMillis(expireTime) / 50);
     }
 
     public static void startCooldown(JavaPlugin plugin, String key, UUID identifier, long expireTime, TimeUnit unit, Consumer<Void> completeCallback) {
@@ -43,7 +43,7 @@ public class CooldownUtil {
             updatedCooldowns.remove(cooldown);
             COOLDOWNS.put(identifier, updatedCooldowns);
             completeCallback.accept(null);
-        }, unit.toSeconds(expireTime) * 20);
+        }, unit.toMillis(expireTime) / 50);
     }
 
     public static void attemptRun(String key, UUID identifier, String cooldownTime, Runnable runnable) {
