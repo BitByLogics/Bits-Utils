@@ -199,7 +199,7 @@ public class Formatter {
             }
 
             if (!formattedMessage.contains("%s")) {
-                break;
+                continue;
             }
 
             formattedMessage = formattedMessage.replaceFirst("%s", Matcher.quoteReplacement(replacement.toString()));
