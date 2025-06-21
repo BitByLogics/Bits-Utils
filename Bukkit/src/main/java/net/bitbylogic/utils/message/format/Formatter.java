@@ -141,10 +141,6 @@ public class Formatter {
             formattedMessage = data.format(formattedMessage);
         }
 
-        if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            formattedMessage = PlaceholderAPI.setPlaceholders(null, formattedMessage);
-        }
-
         return color(formattedMessage);
     }
 
