@@ -6,12 +6,26 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @AllArgsConstructor
 public class BitColor {
 
-    private final static HashMap<String, String> COLORS = new HashMap<>();
+    private final static Map<String, String> DEFAULT_COLORS = Map.ofEntries(
+            Map.entry("Separator", "#555555"),
+            Map.entry("Primary", "#FFB7C5"),
+            Map.entry("Secondary", "#EB5EE5"),
+            Map.entry("Highlight", "#FFD7EF"),
+            Map.entry("Error-Primary", "#FF0030"),
+            Map.entry("Error-Secondary", "#FF8C7A"),
+            Map.entry("Error-Highlight", "#FF3333"),
+            Map.entry("Success-Primary", "#66FF66"),
+            Map.entry("Success-Secondary", "#B3FFB3"),
+            Map.entry("Success-Highlight", "#00FF66")
+    );
+
+    private final static HashMap<String, String> COLORS = new HashMap<>(DEFAULT_COLORS);
 
     public static void loadColors(FileConfiguration config) {
         COLORS.clear();

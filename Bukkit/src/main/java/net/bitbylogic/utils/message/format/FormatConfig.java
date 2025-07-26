@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 public class FormatConfig extends Configurable {
 
     public FormatConfig(@NonNull File configFile) {
-        super(configFile, "Formatting.",
+        super(configFile, false, "Formatting.",
                 pair("Center-Pixels", 154),
                 pair("Symbols.Right-Arrow", "»"),
                 pair("Symbols.Dot", "•"),

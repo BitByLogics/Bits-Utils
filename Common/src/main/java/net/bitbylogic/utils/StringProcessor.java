@@ -3,68 +3,163 @@ package net.bitbylogic.utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 @AllArgsConstructor
 @Getter
 public enum StringProcessor {
 
-    DEFAULT(new Class[]{String.class}, (tc, s) -> s),
-    INT(new Class[]{Integer.class, int.class}, (tc, s) -> {
-        Integer value = Integer.parseInt(s);
-        return tc.isPrimitive() ? value.intValue() : value;
+    DEFAULT(new Class[]{String.class}, (type, value) -> value),
+    INT(new Class[]{Integer.class, int.class}, (type, value) -> Integer.parseInt(value)),
+    LONG(new Class[]{Long.class, long.class}, (type, value) -> Long.parseLong(value)),
+    DOUBLE(new Class[]{Double.class, double.class}, (type, value) -> Double.parseDouble(value)),
+    FLOAT(new Class[]{Float.class, float.class}, (type, value) -> Float.parseFloat(value)),
+    SHORT(new Class[]{Short.class, short.class}, (type, value) -> Short.parseShort(value)),
+    BYTE(new Class[]{Byte.class, byte.class}, (type, value) -> Byte.parseByte(value)),
+    BOOLEAN(new Class[]{Boolean.class, boolean.class}, (type, value) -> {
+        if (NumberUtil.isNumber(value)) {
+            return value.equalsIgnoreCase("1");
+        }
+        return Boolean.parseBoolean(value);
     }),
-    LONG(new Class[]{Long.class, long.class}, (tc, s) -> {
-        Long value = Long.parseLong(s);
-        return tc.isPrimitive() ? value.longValue() : value;
-    }),
-    DOUBLE(new Class[]{Double.class, double.class}, (tc, s) -> {
-        Double value = Double.parseDouble(s);
-        return tc.isPrimitive() ? value.doubleValue() : value;
-    }),
-    FLOAT(new Class[]{Float.class, float.class}, (tc, s) -> {
-        Float value = Float.parseFloat(s);
-        return tc.isPrimitive() ? value.floatValue() : value;
-    }),
-    SHORT(new Class[]{Short.class, short.class}, (tc, s) -> {
-        Short value = Short.parseShort(s);
-        return tc.isPrimitive() ? value.shortValue() : value;
-    }),
-    BYTE(new Class[]{Byte.class, byte.class}, (tc, s) -> {
-        Byte value = Byte.parseByte(s);
-        return tc.isPrimitive() ? value.byteValue() : value;
-    }),
-    BOOLEAN(new Class[]{Boolean.class, boolean.class}, (tc, s) -> {
-        if (NumberUtil.isNumber(s)) {
-            return s.equalsIgnoreCase("1"); // 1 = true, anything else is false
+    CHAR(new Class[]{Character.class, char.class}, (type, value) -> value.isEmpty() ? 'A' : value.charAt(0)),
+    UUID(new Class[]{UUID.class}, (type, value) -> java.util.UUID.fromString(value)),
+    ENUM(new Class[]{Enum.class}, (type, value) -> {
+        if (type instanceof Class<?> enumClass && Enum.class.isAssignableFrom(enumClass)) {
+            @SuppressWarnings("unchecked")
+            Class<Enum> casted = (Class<Enum>) enumClass;
+            return EnumUtil.getValue(casted, value, null);
         }
 
-        Boolean value = Boolean.parseBoolean(s);
-        return tc.isPrimitive() ? value.booleanValue() : value;
-    }),
-    CHAR(new Class[]{Character.class, char.class}, (tc, s) -> s.isEmpty() ? 'A' : s.charAt(0)),
-    UUID(new Class[]{java.util.UUID.class}, (tc, s) -> java.util.UUID.fromString(s)),
-    ENUM(new Class[]{Enum.class}, (tc, s) -> EnumUtil.getValue((Class<Enum>) tc, s, null));
+        return null;
+    });
 
     private final Class<?>[] dataTypes;
     private final StringProcessorFunction<?> processor;
 
-    public static Object findAndProcess(Class<?> targetClass, String value) {
-        for (StringProcessor internalProcessor : values()) {
-            for (Class<?> dataType : internalProcessor.getDataTypes()) {
-                if (!dataType.isAssignableFrom(targetClass)) {
-                    continue;
+    public static Object findAndProcess(Type type, String value) {
+        if (value == null || value.isEmpty()) {
+            if (type instanceof ParameterizedType pt) {
+                Type raw = pt.getRawType();
+                if (raw instanceof Class<?> rawClass && List.class.isAssignableFrom(rawClass)) {
+                    return List.of();
                 }
+                if (raw instanceof Class<?> mapClass && Map.class.isAssignableFrom(mapClass)) {
+                    return new HashMap<>();
+                }
+            }
 
-                return internalProcessor.getProcessor().process(targetClass, value);
+            if (type instanceof Class<?> clazz) {
+                if (List.class.isAssignableFrom(clazz)) {
+                    return List.of();
+                }
+                if (Map.class.isAssignableFrom(clazz)) {
+                    return new HashMap<>();
+                }
+            }
+
+            return "";
+        }
+
+        if (type instanceof ParameterizedType pt) {
+            Type raw = pt.getRawType();
+            Type[] args = pt.getActualTypeArguments();
+
+            if (raw instanceof Class<?> rawClass && List.class.isAssignableFrom(rawClass)) {
+                Type elementType = args[0];
+                return ListUtil.stringToList(value, ":", string -> (Object) findAndProcess(elementType, string));
+            }
+
+            if (raw instanceof Class<?> mapClass && Map.class.isAssignableFrom(mapClass)) {
+                Type keyType = args[0];
+                Type valueType = args[1];
+                return HashMapUtil.mapFromString(new HashMapUtil.ObjectWrapper<>() {
+                    @Override
+                    public Object wrapKey(String key) {
+                        return findAndProcess(keyType, key);
+                    }
+
+                    @Override
+                    public Object wrapValue(String val) {
+                        return findAndProcess(valueType, val);
+                    }
+                }, value);
+            }
+        }
+
+        if (type instanceof Class<?> clazz) {
+            for (StringProcessor processor : values()) {
+                for (Class<?> supported : processor.getDataTypes()) {
+                    if (supported.isAssignableFrom(clazz)) {
+                        return processor.getProcessor().process(clazz, value);
+                    }
+                }
             }
         }
 
         return value;
     }
 
+    public static String toStringFromObject(Type type, Object value) {
+        if (value == null) {
+            return "";
+        }
+
+        if (type instanceof ParameterizedType pt) {
+            Type raw = pt.getRawType();
+            Type[] args = pt.getActualTypeArguments();
+
+            if (raw instanceof Class<?> rawClass && List.class.isAssignableFrom(rawClass)) {
+                Type elementType = args[0];
+                return ListUtil.listToString((List<?>) value, ":", v -> toStringFromObject(elementType, v));
+            }
+
+            if (raw instanceof Class<?> mapClass && Map.class.isAssignableFrom(mapClass)) {
+                Type keyType = args[0];
+                Type valueType = args[1];
+
+                @SuppressWarnings("unchecked")
+                HashMap<Object, Object> castedMap = new HashMap<>((Map<Object, Object>) value);
+
+                return HashMapUtil.mapToString(castedMap, new HashMapUtil.ObjectParser<>() {
+                    @Override
+                    public String wrapKey(Object key) {
+                        return toStringFromObject(keyType, key);
+                    }
+
+                    @Override
+                    public String wrapValue(Object val) {
+                        return toStringFromObject(valueType, val);
+                    }
+                });
+            }
+        }
+
+        if (type instanceof Class<?> clazz) {
+            if (clazz.isEnum()) {
+                return ((Enum<?>) value).name();
+            }
+            return value.toString();
+        }
+
+        return value.toString();
+    }
+
+    public static Object findAndProcess(Class<?> clazz, String value) {
+        return findAndProcess((Type) clazz, value);
+    }
+
+    public static String toStringFromObject(Class<?> clazz, Object value) {
+        return toStringFromObject((Type) clazz, value);
+    }
+
     private interface StringProcessorFunction<V> {
-
-        V process(Class<?> targetClass, String value);
-
+        V process(Type targetType, String value);
     }
 
 }

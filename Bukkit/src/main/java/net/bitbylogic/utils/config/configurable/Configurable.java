@@ -22,6 +22,8 @@ public class Configurable {
     private final HashMap<ConfigKeyData, Object> configValues = new HashMap<>();
     private final HashMap<String, ConfigWrapper<?>> valueWrappers = new HashMap<>();
 
+    private final boolean saveDefaults;
+
     @Setter
     private File configFile;
 
@@ -29,8 +31,13 @@ public class Configurable {
     private String globalPrefix;
 
     public Configurable(@NonNull File configFile, @NonNull String globalPrefix, @NonNull Pair<Object, Object>... defaultValues) {
+        this(configFile, true, globalPrefix, defaultValues);
+    }
+
+    public Configurable(@NonNull File configFile, boolean saveDefaults, @NonNull String globalPrefix, @NonNull Pair<Object, Object>... defaultValues) {
         this.configFile = configFile;
         this.globalPrefix = globalPrefix;
+        this.saveDefaults = saveDefaults;
 
         for (Pair<Object, Object> defaultValue : defaultValues) {
             Object key = defaultValue.getKey();
@@ -46,12 +53,14 @@ public class Configurable {
     public Configurable(@NonNull File configFile, @NonNull String globalPrefix) {
         this.configFile = configFile;
         this.globalPrefix = globalPrefix;
+        this.saveDefaults = true;
 
         loadConfigPaths();
     }
 
     public Configurable(@NonNull File configFile, @NonNull Pair<Object, Object>... defaultValues) {
         this.configFile = configFile;
+        this.saveDefaults = true;
 
         for (Pair<Object, Object> defaultValue : defaultValues) {
             Object key = defaultValue.getKey();
@@ -66,12 +75,14 @@ public class Configurable {
 
     public Configurable(@NonNull File configFile) {
         this.configFile = configFile;
+        this.saveDefaults = true;
 
         loadConfigPaths();
     }
 
     public Configurable() {
         this.configFile = null;
+        this.saveDefaults = true;
 
         loadConfigPaths();
     }
@@ -101,6 +112,10 @@ public class Configurable {
                     : valueWrappers.getOrDefault(wrapperId, DEFAULT_WRAPPER);
 
             if (!config.isSet(finalPath)) {
+                if(!saveDefaults) {
+                    return;
+                }
+
                 if (wrapper == null) {
                     config.set(finalPath, object);
                     return;
@@ -127,7 +142,7 @@ public class Configurable {
     }
 
     public void saveToConfig() {
-        if (configFile == null || configValues.isEmpty()) {
+        if (!saveDefaults || configFile == null || configValues.isEmpty()) {
             return;
         }
 
@@ -188,7 +203,7 @@ public class Configurable {
 
         Object actualValue = config.get(path);
 
-        if (actualValue == null && save) {
+        if (actualValue == null && save && saveDefaults) {
             String finalPath = globalPrefix == null ? path : globalPrefix + path;
 
             config.set(finalPath, defaultValue);

@@ -2,7 +2,6 @@ package net.bitbylogic.utils.message.format;
 
 import lombok.Getter;
 import lombok.NonNull;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.bitbylogic.rps.client.RedisClient;
 import net.bitbylogic.rps.listener.ListenerComponent;
 import net.bitbylogic.utils.Placeholder;
@@ -16,14 +15,13 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.File;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.regex.Matcher;
 
 public class Formatter {
@@ -428,7 +426,7 @@ public class Formatter {
             compensated += spaceLength;
         }
 
-        return sb + message;
+        return sb + "§r" + message;
     }
 
     public static void sendCenteredMessages(Player player, String[] lines) {

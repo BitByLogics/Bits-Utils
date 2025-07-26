@@ -1,5 +1,6 @@
 package net.bitbylogic.utils.hologram;
 
+import lombok.Getter;
 import lombok.NonNull;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
@@ -14,8 +15,9 @@ import java.util.Optional;
 
 public class Hologram {
 
-    private static final float LINE_SPACING = 0.15f;
+    private float lineSpacing = 0.17f;
 
+    @Getter
     private final List<HologramLine> lines = new ArrayList<>();
 
     private boolean global = true;
@@ -34,6 +36,11 @@ public class Hologram {
         return this;
     }
 
+    public Hologram lineSpacing(float lineSpacing) {
+        this.lineSpacing = lineSpacing;
+        return this;
+    }
+
     public void spawn(@NonNull Location location) {
         spawn(location, null, new ArrayList<>());
     }
@@ -47,7 +54,7 @@ public class Hologram {
             if (display != null) {
                 Display lineDisplay = line.build(location, global);
                 Transformation transformation = lineDisplay.getTransformation();
-                transformation.getTranslation().set(0, transformation.getTranslation().y + (LINE_SPACING * i), 0);
+                transformation.getTranslation().set(0, transformation.getTranslation().y + (lineSpacing * i), 0);
 
                 lineDisplay.setTransformation(transformation);
 
