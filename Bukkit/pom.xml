@@ -50,14 +50,14 @@
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-common</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1</version>
         </dependency>
 
         <!-- Bit's Utils Paper -->
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-paper</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1</version>
         </dependency>
 
         <!-- PlaceholderAPI -->
