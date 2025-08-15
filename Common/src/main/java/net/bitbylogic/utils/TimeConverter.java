@@ -18,12 +18,11 @@ public class TimeConverter {
      * @return Whether the specified string is valid.
      */
     public static boolean isTimeString(String string) {
-        for (String split : string.split(" ")) {
-            if (!TIME_PATTERN.matcher(split).hasMatch()) {
+        for (String split : string.trim().split("\\s+")) {
+            if (!TIME_PATTERN.matcher(split).matches()) {
                 return false;
             }
         }
-
         return true;
     }
 
