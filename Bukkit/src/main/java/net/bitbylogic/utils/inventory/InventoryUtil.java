@@ -62,7 +62,11 @@ public class InventoryUtil {
      * @return Whether the inventory has space.
      */
     public static boolean hasSpace(Inventory inventory, @Nullable ItemStack itemStack, @Nullable List<Integer> validSlots) {
-        int maxStackSize = itemStack == null ? -1 : itemStack.getMaxStackSize();
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return true;
+        }
+
+        int maxStackSize = itemStack.getMaxStackSize();
         int availableSpace = 0;
 
         for (int i = 0; i < inventory.getSize(); i++) {
@@ -70,29 +74,25 @@ public class InventoryUtil {
                 continue;
             }
 
+            if (inventory instanceof PlayerInventory) {
+                if (i >= 36 && i <= 39) continue;
+                if (i == 40) continue;
+            }
+
             ItemStack content = inventory.getItem(i);
 
             if (content == null || content.getType() == Material.AIR) {
-                availableSpace += (maxStackSize == -1 ? 64 : maxStackSize);
-                continue;
-            }
+                availableSpace += maxStackSize;
+            } else if (ItemStackUtil.isSimilar(itemStack, content, true, true, true)) {
+                int space = content.getMaxStackSize() - content.getAmount();
 
-            if (maxStackSize == -1 || !ItemStackUtil.isSimilar(itemStack, content, true, true, true)) {
-                continue;
+                if (space > 0) {
+                    availableSpace += space;
+                }
             }
-
-            if (content.getAmount() >= maxStackSize) {
-                continue;
-            }
-
-            availableSpace += content.getMaxStackSize() - content.getAmount();
         }
 
-        if (itemStack != null) {
-            return availableSpace > 0 && availableSpace >= itemStack.getAmount();
-        }
-
-        return availableSpace > 0;
+        return availableSpace >= itemStack.getAmount();
     }
 
     /**

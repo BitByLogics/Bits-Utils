@@ -19,9 +19,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class ItemStackUtil {
 
@@ -155,31 +153,37 @@ public class ItemStackUtil {
      * @return Whether the ItemStacks are similar.
      */
     public static boolean isSimilar(ItemStack item, ItemStack otherItem, boolean compareFlags, boolean compareName, boolean compareLore) {
-        if (item == null || otherItem == null) {
-            return false;
-        }
+        if (item == null || otherItem == null) return false;
+        if (item.getType() != otherItem.getType()) return false;
 
-        if (item.getType() != otherItem.getType()) {
-            return false;
-        }
-
-        ItemMeta mainMeta = item.getItemMeta();
+        ItemMeta meta = item.getItemMeta();
         ItemMeta otherMeta = otherItem.getItemMeta();
 
+        // Compare flags
         if (compareFlags) {
-            if (!flagsMatch(item, otherItem)) {
+            Set<ItemFlag> flags = (meta == null ? Collections.emptySet() : meta.getItemFlags());
+            Set<ItemFlag> otherFlags = (otherMeta == null ? Collections.emptySet() : otherMeta.getItemFlags());
+
+            if (!flags.equals(otherFlags)) {
                 return false;
             }
         }
 
-        if (compareName && (mainMeta != null && otherMeta != null)) {
-            if (!mainMeta.getDisplayName().equalsIgnoreCase(otherMeta.getDisplayName())) {
+        // Compare display name
+        if (compareName) {
+            String name = (meta != null && meta.hasDisplayName()) ? meta.getDisplayName() : null;
+            String otherName = (otherMeta != null && otherMeta.hasDisplayName()) ? otherMeta.getDisplayName() : null;
+
+            if (!Objects.equals(name, otherName)) {
                 return false;
             }
         }
 
-        if (compareLore && (mainMeta != null && otherMeta != null)) {
-            return loreMatches(item, otherItem);
+        // Compare lore
+        if (compareLore) {
+            List<String> lore = (meta != null && meta.hasLore()) ? meta.getLore() : null;
+            List<String> otherLore = (otherMeta != null && otherMeta.hasLore()) ? otherMeta.getLore() : null;
+            return Objects.equals(lore, otherLore);
         }
 
         return true;
@@ -200,19 +204,7 @@ public class ItemStackUtil {
         Set<ItemFlag> itemFlags = item.getItemMeta().getItemFlags();
         Set<ItemFlag> otherItemFlags = otherItem.getItemMeta().getItemFlags();
 
-        for (ItemFlag itemFlag : itemFlags) {
-            if (!otherItemFlags.contains(itemFlag)) {
-                return false;
-            }
-        }
-
-        for (ItemFlag itemFlag : otherItemFlags) {
-            if (!itemFlags.contains(itemFlag)) {
-                return false;
-            }
-        }
-
-        return true;
+        return itemFlags.equals(otherItemFlags);
     }
 
     /**
@@ -246,19 +238,7 @@ public class ItemStackUtil {
             return false;
         }
 
-        for (String loreItem : itemLore) {
-            if (!otherItemLore.contains(loreItem)) {
-                return false;
-            }
-        }
-
-        for (String loreItem : otherItemLore) {
-            if (!itemLore.contains(loreItem)) {
-                return false;
-            }
-        }
-
-        return true;
+        return itemLore.equals(otherItemLore);
     }
 
     /**
