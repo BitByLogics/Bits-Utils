@@ -3,6 +3,7 @@ package net.bitbylogic.utils.inventory;
 import net.bitbylogic.utils.item.ItemStackUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -63,7 +64,7 @@ public class InventoryUtil {
      */
     public static boolean hasSpace(Inventory inventory, @Nullable ItemStack itemStack, @Nullable List<Integer> validSlots) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return true;
+            return validSlots == null || validSlots.isEmpty() ? inventory.firstEmpty() != -1 : validSlots.stream().anyMatch(slot -> inventory.getItem(slot) == null);
         }
 
         int maxStackSize = itemStack.getMaxStackSize();
@@ -442,6 +443,35 @@ public class InventoryUtil {
                 clonedStack.setAmount(clonedStack.getAmount() - newAmount);
             }
         }
+    }
+
+    public static boolean removeMaterial(Player player, Material material, int amount) {
+        Inventory inv = player.getInventory();
+        int toRemove = amount;
+
+        for (ItemStack item : inv.getContents()) {
+            if (item == null || item.getType() != material) {
+                continue;
+            }
+
+            int stackAmount = item.getAmount();
+
+            if (stackAmount <= toRemove) {
+                inv.removeItem(item);
+                toRemove -= stackAmount;
+            } else {
+                item.setAmount(stackAmount - toRemove);
+                toRemove = 0;
+            }
+
+            if (toRemove > 0) {
+                continue;
+            }
+
+            break;
+        }
+
+        return toRemove == 0;
     }
 
 }
