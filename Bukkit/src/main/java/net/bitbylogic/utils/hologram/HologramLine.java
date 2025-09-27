@@ -2,212 +2,229 @@ package net.bitbylogic.utils.hologram;
 
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import net.bitbylogic.utils.hologram.line.HologramBlockLine;
+import net.bitbylogic.utils.hologram.line.HologramItemLine;
+import net.bitbylogic.utils.hologram.line.HologramTextLine;
+import net.bitbylogic.utils.hologram.type.HologramType;
 import net.bitbylogic.utils.message.format.Formatter;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.*;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Transformation;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
+
 @Getter
-public class HologramLine {
+public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
 
-    private final EntityType displayType;
+    private final Transformation transformation = new Transformation(
+            new Vector3f(),
+            new Quaternionf(),
+            new Vector3f(1, 1, 1),
+            new Quaternionf()
+    );
 
-    // General Display Settings
-    private final Transformation transformation = new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(), new Quaternionf());
+    private @NonNull String id = UUID.randomUUID().toString();
 
     private Display.Billboard billboard;
     private Display.Brightness brightness;
+
     private boolean glowing;
     private Color glowColor;
 
     private float yaw;
     private float pitch;
 
-    // Text Display Settings
-    private String text;
-    private Color backgroundColor;
-    private byte opacity = -1;
-    private boolean shadow;
-    private boolean seeThrough;
-    private TextDisplay.TextAlignment alignment;
+    private long updateInterval = 50;
 
-    // Item Display Settings
-    private ItemStack itemStack;
-    private ItemDisplay.ItemDisplayTransform displayTransform;
+    private T data;
+    private Supplier<T> dataSupplier;
 
-    // Block Display Settings
-    private BlockData blockData;
+    private transient @Nullable Display display;
 
-    private Display display;
+    @Setter
+    protected transient @Nullable Hologram hologram;
 
-    private HologramLine(@NonNull EntityType entityType, @NonNull String text) {
-        this.displayType = entityType;
-        this.text = text;
+    @Setter
+    protected transient long lastUpdateTime;
+
+    public HologramLine(@NonNull T data) {
+        this.data = data;
     }
 
-    private HologramLine(@NonNull EntityType entityType, @NonNull ItemStack itemStack) {
-        this.displayType = entityType;
-        this.itemStack = itemStack;
+    public HologramLine(@NonNull Supplier<T> dataSupplier) {
+        this.dataSupplier = dataSupplier;
     }
 
-    private HologramLine(@NonNull EntityType entityType, @NonNull BlockData blockData) {
-        this.displayType = entityType;
-        this.blockData = blockData;
+    public Optional<T> getData() {
+        return dataSupplier == null ? Optional.ofNullable(data) : Optional.ofNullable(dataSupplier.get());
     }
 
-    public static HologramLine of(@NonNull String text) {
-        return new HologramLine(EntityType.TEXT_DISPLAY, text);
+    protected abstract SELF self();
+
+    public abstract HologramType getType();
+
+    protected void updateData() {
+        if(display == null || getData().isEmpty()) {
+            return;
+        }
+
+        T data = getData().get();
+
+        switch (getType()) {
+            case TEXT -> {
+                TextDisplay textDisplay = (TextDisplay) display;
+
+                textDisplay.setText(Formatter.format((String) data));
+            }
+            case ITEM -> {
+                ItemDisplay itemDisplay = (ItemDisplay) display;
+
+                itemDisplay.setItemStack((ItemStack) data);
+            }
+            case BLOCK -> {
+                BlockDisplay blockDisplay = (BlockDisplay) display;
+
+                blockDisplay.setBlock((BlockData) data);
+            }
+        }
     }
 
-    public static HologramLine of(@NonNull ItemStack itemStack) {
-        return new HologramLine(EntityType.ITEM_DISPLAY, itemStack);
+    public SELF id(@NonNull String id) {
+        this.id = id;
+        return self();
     }
 
-    public static HologramLine of(@NonNull BlockData blockData) {
-        return new HologramLine(EntityType.BLOCK_DISPLAY, blockData);
-    }
-
-    public HologramLine billboard(@NonNull Display.Billboard billboard) {
+    public SELF billboard(@NonNull Display.Billboard billboard) {
         this.billboard = billboard;
-        return this;
+        return self();
     }
 
-    public HologramLine brightness(@NonNull Display.Brightness brightness) {
+    public SELF brightness(@NonNull Display.Brightness brightness) {
         this.brightness = brightness;
-        return this;
+        return self();
     }
 
-    public HologramLine glowing(boolean glowing) {
+    public SELF glowing(boolean glowing) {
         this.glowing = glowing;
-        return this;
+        return self();
     }
 
-    public HologramLine glowColor(@NonNull Color color) {
+    public SELF glowColor(@NonNull Color color) {
         this.glowColor = color;
-        return this;
+        return self();
     }
 
-    public HologramLine scale(float scale) {
+    public SELF yaw(float yaw) {
+        this.yaw = yaw;
+        return self();
+    }
+
+    public SELF pitch(float pitch) {
+        this.pitch = pitch;
+        return self();
+    }
+
+    public SELF updateInterval(long updateInterval) {
+        this.updateInterval = updateInterval;
+        return self();
+    }
+
+    public SELF data(@NonNull T data) {
+        this.data = data;
+
+        if(display != null) {
+            updateData();
+        }
+
+        return self();
+    }
+
+    public SELF data(@NonNull Supplier<T> dataSupplier) {
+        this.dataSupplier = dataSupplier;
+
+        if(display != null) {
+            updateData();
+        }
+
+        return self();
+    }
+
+    public SELF scale(float scale) {
         this.transformation.getScale().set(scale);
-        return this;
+        return self();
     }
 
-    public HologramLine translation(@NonNull Vector3f translation) {
+    public SELF translation(@NonNull Vector3f translation) {
         this.transformation.getTranslation().set(translation);
-        return this;
+        return self();
     }
 
-    public HologramLine rotation(float yaw, float pitch) {
+    public SELF rotation(float yaw, float pitch) {
         this.yaw = yaw;
         this.pitch = pitch;
-        return this;
+        return self();
     }
 
-    public HologramLine backgroundColor(@NonNull Color color) {
-        if(displayType != EntityType.TEXT_DISPLAY) {
-            throw new UnsupportedOperationException("Cannot set background color for non-text display entity");
-        }
-
-        backgroundColor = color;
-        return this;
-    }
-
-    public HologramLine textOpacity(byte opacity) {
-        if(displayType != EntityType.TEXT_DISPLAY) {
-            throw new UnsupportedOperationException("Cannot set background color for non-text display entity");
-        }
-
-        this.opacity = opacity;
-        return this;
-    }
-
-    public HologramLine textShadow(boolean shadow) {
-        if(displayType != EntityType.TEXT_DISPLAY) {
-            throw new UnsupportedOperationException("Cannot set background color for non-text display entity");
-        }
-
-        this.shadow = shadow;
-        return this;
-    }
-
-    public HologramLine seeThrough(boolean seeThrough) {
-        if(displayType != EntityType.TEXT_DISPLAY) {
-            throw new UnsupportedOperationException("Cannot set background color for non-text display entity");
-        }
-
-        this.seeThrough = seeThrough;
-        return this;
-    }
-
-    public HologramLine textAlignment(@NonNull TextDisplay.TextAlignment alignment) {
-        if(displayType != EntityType.TEXT_DISPLAY) {
-            throw new UnsupportedOperationException("Cannot set background color for non-text display entity");
-        }
-
-        this.alignment = alignment;
-        return this;
-    }
-
-    public HologramLine displayTransform(@NonNull ItemDisplay.ItemDisplayTransform transform) {
-        if(displayType != EntityType.ITEM_DISPLAY) {
-            throw new UnsupportedOperationException("Cannot set background color for non-text display entity");
-        }
-
-        this.displayTransform = transform;
-        return this;
-    }
-
-    public Display build(@NonNull Location location, boolean global) {
+    protected Display build(@NonNull Location location, boolean persistent, boolean global) {
         if(location.getWorld() == null) {
             throw new IllegalArgumentException("Invalid location, world cannot be null");
         }
 
-        switch (displayType) {
-            case TEXT_DISPLAY -> {
+        switch (getType()) {
+            case TEXT -> {
                 TextDisplay textDisplay = location.getWorld().spawn(location, TextDisplay.class);
 
-                textDisplay.setText(Formatter.format(text));
-                textDisplay.setBackgroundColor(backgroundColor == null ? textDisplay.getBackgroundColor() : backgroundColor);
-                textDisplay.setTextOpacity(opacity == -1 ? textDisplay.getTextOpacity() : opacity);
-                textDisplay.setShadowed(shadow);
-                textDisplay.setSeeThrough(seeThrough);
-                textDisplay.setAlignment(alignment == null ? textDisplay.getAlignment() : alignment);
+                HologramTextLine textLine = (HologramTextLine) this;
+
+                textDisplay.setText(Formatter.format(textLine.getData().orElse("")));
+                textDisplay.setBackgroundColor(textLine.getBackgroundColor() == null
+                        ? textDisplay.getBackgroundColor() : textLine.getBackgroundColor());
+                textDisplay.setTextOpacity(textLine.getOpacity() == -1
+                        ? textDisplay.getTextOpacity() : textLine.getOpacity());
+                textDisplay.setShadowed(textLine.isShadow());
+                textDisplay.setSeeThrough(textLine.isSeeThrough());
+                textDisplay.setAlignment(textLine.getAlignment() == null
+                        ? textDisplay.getAlignment() : textLine.getAlignment());
 
                 display = textDisplay;
             }
-            case ITEM_DISPLAY -> {
+            case ITEM -> {
                 ItemDisplay itemDisplay = location.getWorld().spawn(location, ItemDisplay.class);
 
-                itemDisplay.setItemStack(itemStack);
-                itemDisplay.setItemDisplayTransform(displayTransform == null ? itemDisplay.getItemDisplayTransform() : displayTransform);
+                HologramItemLine itemLine = (HologramItemLine) this;
+
+                itemDisplay.setItemStack(itemLine.getData().orElse(new ItemStack(Material.BARRIER)));
+                itemDisplay.setItemDisplayTransform(itemLine.getDisplayTransform() == null
+                        ? itemDisplay.getItemDisplayTransform() : itemLine.getDisplayTransform());
 
                 display = itemDisplay;
             }
-            case BLOCK_DISPLAY -> {
+            case BLOCK -> {
                 BlockDisplay blockDisplay = location.getWorld().spawn(location, BlockDisplay.class);
 
-                blockDisplay.setBlock(blockData);
+                HologramBlockLine blockLine = (HologramBlockLine) this;
+
+                blockDisplay.setBlock(blockLine.getData().orElse(Material.OAK_LOG.createBlockData()));
 
                 display = blockDisplay;
-            }
-            default -> {
-                TextDisplay textDisplay = location.getWorld().spawn(location, TextDisplay.class);
-
-                textDisplay.setText(Formatter.format("&c&lINVALID LINE"));
-                textDisplay.setShadowed(true);
-
-                display = textDisplay;
             }
         }
 
         display.setVisibleByDefault(global);
-        display.setPersistent(false);
+        display.setPersistent(persistent);
         display.setTeleportDuration(1);
         display.setBillboard(billboard == null ? display.getBillboard() : billboard);
         display.setBrightness(brightness == null ? display.getBrightness() : brightness);
@@ -217,6 +234,10 @@ public class HologramLine {
         display.setRotation(yaw, pitch);
 
         return display;
+    }
+
+    public static HologramTextLine of(@NonNull String text) {
+        return new HologramTextLine(text);
     }
 
 }
