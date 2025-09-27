@@ -59,6 +59,7 @@ public class TimeConverter {
             return "Forever";
         }
 
+        long milliseconds = time - ((time) / 1000 * 1000);
         long seconds = TimeUnit.MILLISECONDS.toSeconds(time);
         seconds = seconds - ((seconds / 60) * 60);
         long minutes = TimeUnit.MILLISECONDS.toMinutes(time);
@@ -100,7 +101,11 @@ public class TimeConverter {
         }
 
         if (seconds > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("seconds"))) {
-            message.append(seconds).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes) + (longPrefixes ? (seconds > 1 ? "s" : "") : ""));
+            message.append(seconds).append(".").append((int) (milliseconds / 100)).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes)).append(longPrefixes ? (seconds > 1 ? "s" : "") : "");
+        }
+
+        if(seconds <= 0 && milliseconds > 0 && milliseconds < 1000 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("milliseconds"))) {
+            message.append("0").append(".").append(((int) (milliseconds / 100))).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes)).append(longPrefixes ? (milliseconds > 1 ? "s" : "") : "");
         }
 
         return message.toString().trim();
