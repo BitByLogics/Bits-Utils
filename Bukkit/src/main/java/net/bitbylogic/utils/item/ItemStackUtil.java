@@ -23,7 +23,7 @@ import java.util.*;
 
 public class ItemStackUtil {
 
-    private static final ItemStackConfigParser CONFIG_PARSER = new ItemStackConfigParser();
+    private static final ItemStackConfigSerializer CONFIG_PARSER = new ItemStackConfigSerializer();
 
     /**
      * Create an ItemStack object from a configuration
@@ -34,7 +34,7 @@ public class ItemStackUtil {
      * @return New ItemStack instance.
      */
     public static ItemStack getFromConfig(@NonNull ConfigurationSection section, StringModifier... modifiers) {
-        Optional<ItemStack> optionalItem = CONFIG_PARSER.parseFrom(section);
+        Optional<ItemStack> optionalItem = CONFIG_PARSER.serializeFrom(section);
 
         if(optionalItem.isEmpty()) {
             return new ItemStack(Material.OAK_LOG);
@@ -47,7 +47,7 @@ public class ItemStackUtil {
     }
 
     public static void saveToConfig(@NonNull ConfigurationSection section, @NonNull ItemStack item) {
-        CONFIG_PARSER.parseTo(section, item);
+        CONFIG_PARSER.serializeTo(section, item);
     }
 
     /**

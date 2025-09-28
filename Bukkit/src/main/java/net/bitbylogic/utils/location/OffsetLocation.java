@@ -29,8 +29,8 @@ public class OffsetLocation {
         return new OffsetLocation(location.getX(), location.getY(), location.getZ());
     }
 
-    public static OffsetLocationConfigParser getParser() {
-        return new OffsetLocationConfigParser();
+    public static OffsetLocationConfigSerializer getParser() {
+        return new OffsetLocationConfigSerializer();
     }
 
     public @NonNull Location apply(@NonNull Location location) {

@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import lombok.NonNull;
 import net.bitbylogic.utils.EnumUtil;
 import net.bitbylogic.utils.NumberUtil;
-import net.bitbylogic.utils.config.ConfigParser;
+import net.bitbylogic.utils.config.ConfigSerializer;
 import net.bitbylogic.utils.message.format.Formatter;
 import net.bitbylogic.utils.server.ServerUtil;
 import net.md_5.bungee.api.ChatColor;
@@ -22,7 +22,6 @@ import org.bukkit.inventory.meta.components.EquippableComponent;
 import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.inventory.meta.components.ToolComponent;
 import org.bukkit.inventory.meta.components.consumable.ConsumableComponent;
-import org.bukkit.inventory.meta.components.consumable.effects.ConsumableEffect;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -37,10 +36,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class ItemStackConfigParser implements ConfigParser<ItemStack> {
+public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
     @Override
-    public Optional<ItemStack> parseFrom(@NonNull ConfigurationSection section) {
+    public Optional<ItemStack> serializeFrom(@NonNull ConfigurationSection section) {
         int amount = section.getInt("Amount", 1);
         ItemStack stack = new ItemStack(Material.valueOf(Formatter.format(section.getString("Material", "BARRIER"))), amount);
         ItemMeta meta = stack.getItemMeta();
@@ -296,7 +295,7 @@ public class ItemStackConfigParser implements ConfigParser<ItemStack> {
     }
 
     @Override
-    public ConfigurationSection parseTo(@NonNull ConfigurationSection section, @NonNull ItemStack itemStack) {
+    public ConfigurationSection serializeTo(@NonNull ConfigurationSection section, @NonNull ItemStack itemStack) {
         section.set("Material", itemStack.getType().name());
         section.set("Amount", itemStack.getAmount());
 

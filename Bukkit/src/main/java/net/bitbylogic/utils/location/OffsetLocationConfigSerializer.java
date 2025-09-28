@@ -1,15 +1,15 @@
 package net.bitbylogic.utils.location;
 
 import lombok.NonNull;
-import net.bitbylogic.utils.config.ConfigParser;
+import net.bitbylogic.utils.config.ConfigSerializer;
 import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.Optional;
 
-public class OffsetLocationConfigParser implements ConfigParser<OffsetLocation> {
+public class OffsetLocationConfigSerializer implements ConfigSerializer<OffsetLocation> {
 
     @Override
-    public Optional<OffsetLocation> parseFrom(@NonNull ConfigurationSection section) {
+    public Optional<OffsetLocation> serializeFrom(@NonNull ConfigurationSection section) {
         double xOffset = section.getDouble("X-Offset");
         double yOffset = section.getDouble("Y-Offset");
         double zOffset = section.getDouble("Z-Offset");
@@ -18,7 +18,7 @@ public class OffsetLocationConfigParser implements ConfigParser<OffsetLocation> 
     }
 
     @Override
-    public ConfigurationSection parseTo(@NonNull ConfigurationSection section, @NonNull OffsetLocation location) {
+    public ConfigurationSection serializeTo(@NonNull ConfigurationSection section, @NonNull OffsetLocation location) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
