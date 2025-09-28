@@ -30,6 +30,10 @@ public final class ContextKey<T> {
         ContextRegistry.register(this);
     }
 
+    public ContextKey(@NonNull String id, @NonNull Class<T> rawType, @Nullable Function<Context, T> provider) {
+        this(id, rawType, rawType, provider);
+    }
+
     public ContextKey(@NonNull String id, @NonNull Class<T> rawType, @NonNull Type genericType) {
         this(id, rawType, genericType, null);
     }
