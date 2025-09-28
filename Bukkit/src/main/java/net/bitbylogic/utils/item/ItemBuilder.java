@@ -1,8 +1,6 @@
 package net.bitbylogic.utils.item;
 
 import lombok.NonNull;
-import net.bitbylogic.utils.action.ActionManager;
-import net.bitbylogic.utils.action.PlayerInteractAction;
 import net.bitbylogic.utils.message.format.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -21,7 +19,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class ItemBuilder {
 
@@ -155,20 +152,6 @@ public class ItemBuilder {
         skullProfile.setTextures(textures);
         skullMeta.setOwnerProfile(skullProfile);
         item.setItemMeta(skullMeta);
-        return this;
-    }
-
-    public ItemBuilder addAction(ActionManager actionManager, PlayerInteractAction action) {
-        if (item == null) {
-            build();
-        }
-
-        String itemIdentifier = UUID.randomUUID().toString();
-        ItemMeta meta = item.getItemMeta();
-        meta.getPersistentDataContainer().set(new NamespacedKey(actionManager.getPlugin(), itemIdentifier), PersistentDataType.STRING, "");
-        item.setItemMeta(meta);
-        action.setItemIdentifier(itemIdentifier);
-        actionManager.trackAction(null, action);
         return this;
     }
 
