@@ -1,6 +1,7 @@
 package net.bitbylogic.utils.message.messages;
 
 import lombok.NonNull;
+import net.bitbylogic.utils.message.progressbar.ProgressBarMessages;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -14,6 +15,10 @@ public abstract class Messages {
     private static final List<MessageGroup> GROUP_REGISTRY = new ArrayList<>();
 
     private static final Locale[] SUPPORTED_LOCALES = { Locale.ENGLISH, Locale.GERMAN };
+
+    static {
+        registerGroup(new ProgressBarMessages());
+    }
 
     public static MessageKey register(String path, String defaultValue) {
         MessageKey key = new MessageKey(path, defaultValue);

@@ -28,6 +28,10 @@ public class MessageKey {
         this.values = new ArrayList<>(defaultValue);
     }
 
+    public String get(@NonNull Context context) {
+        return get();
+    }
+
     public String get(@NonNull Player player, StringModifier... modifiers) {
         return get(modifiers);
     }
