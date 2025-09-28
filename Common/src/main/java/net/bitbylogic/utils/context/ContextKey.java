@@ -43,6 +43,11 @@ public final class ContextKey<T> {
         return provider.apply(context);
     }
 
+    @SuppressWarnings("unchecked")
+    public static <T> ContextKey<T> key(String id, Class<?> rawType, Type genericType) {
+        return new ContextKey<>(id, (Class<T>) rawType, genericType);
+    }
+
     @Override
     public boolean equals(Object object) {
         if (object == null || getClass() != object.getClass()) return false;

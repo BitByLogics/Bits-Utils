@@ -34,6 +34,14 @@ public class ConfiguredMetadata {
         load(section);
     }
 
+    public boolean hasKey(@NonNull String key) {
+        return metadataMap.containsKey(key.toLowerCase());
+    }
+
+    public boolean hasKeyDeep(@NonNull String key) {
+        return metadataDeepMap.containsKey(key.toLowerCase());
+    }
+
     public <T> T getValueAsOrDefault(@NonNull String key, T defaultValue) {
         Object value = metadataMap.getValueAsOrDefault(key.toLowerCase(), defaultValue);
 
