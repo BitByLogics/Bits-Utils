@@ -58,6 +58,9 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
     protected transient @Nullable Hologram hologram;
 
     @Setter
+    protected transient @Nullable Vector3f lineOffset;
+
+    @Setter
     protected transient long lastUpdateTime;
 
     public HologramLine(@NonNull T data) {

@@ -12,6 +12,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -103,6 +104,7 @@ public class Hologram {
                 Transformation transformation = lineDisplay.getTransformation();
                 transformation.getTranslation().set(0, transformation.getTranslation().y + (lineSpacing * i), 0);
 
+                line.setLineOffset(new Vector3f(transformation.getTranslation()));
                 lineDisplay.setTransformation(transformation);
 
                 if (!global && plugin != null) {
@@ -160,6 +162,8 @@ public class Hologram {
 
             transformation.getTranslation().set(0, currentY, 0);
             display.setTransformation(transformation);
+
+            line.setLineOffset(new Vector3f(transformation.getTranslation()));
 
             currentY += lineSpacing * lineCount;
         }
