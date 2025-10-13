@@ -68,12 +68,12 @@ public class DirectoryProcessor {
                     return;
                 }
 
-                parser.serializeFrom(keySection).ifPresent(data::add);
+                parser.deserialize(keySection).ifPresent(data::add);
             });
             return;
         }
 
-        parser.serializeFrom(config).ifPresent(data::add);
+        parser.deserialize(config).ifPresent(data::add);
     }
 
 }

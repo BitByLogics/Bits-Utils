@@ -9,7 +9,7 @@ import java.util.Optional;
 public class OffsetLocationConfigSerializer implements ConfigSerializer<OffsetLocation> {
 
     @Override
-    public Optional<OffsetLocation> serializeFrom(@NonNull ConfigurationSection section) {
+    public Optional<OffsetLocation> deserialize(@NonNull ConfigurationSection section) {
         double xOffset = section.getDouble("X-Offset");
         double yOffset = section.getDouble("Y-Offset");
         double zOffset = section.getDouble("Z-Offset");
@@ -18,7 +18,7 @@ public class OffsetLocationConfigSerializer implements ConfigSerializer<OffsetLo
     }
 
     @Override
-    public ConfigurationSection serializeTo(@NonNull ConfigurationSection section, @NonNull OffsetLocation location) {
+    public ConfigurationSection serialize(@NonNull ConfigurationSection section, @NonNull OffsetLocation location) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

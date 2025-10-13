@@ -39,7 +39,7 @@ import java.util.Optional;
 public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
     @Override
-    public Optional<ItemStack> serializeFrom(@NonNull ConfigurationSection section) {
+    public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section) {
         int amount = section.getInt("Amount", 1);
         ItemStack stack = new ItemStack(Material.valueOf(Formatter.format(section.getString("Material", "BARRIER"))), amount);
         ItemMeta meta = stack.getItemMeta();
@@ -295,7 +295,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
     }
 
     @Override
-    public ConfigurationSection serializeTo(@NonNull ConfigurationSection section, @NonNull ItemStack itemStack) {
+    public ConfigurationSection serialize(@NonNull ConfigurationSection section, @NonNull ItemStack itemStack) {
         section.set("Material", itemStack.getType().name());
         section.set("Amount", itemStack.getAmount());
 

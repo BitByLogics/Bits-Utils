@@ -7,8 +7,8 @@ import java.util.Optional;
 
 public interface ConfigSerializer<O> {
 
-    Optional<O> serializeFrom(@NonNull ConfigurationSection section);
+    Optional<O> deserialize(@NonNull ConfigurationSection section);
 
-    ConfigurationSection serializeTo(@NonNull ConfigurationSection section, @NonNull O object);
+    ConfigurationSection serialize(@NonNull ConfigurationSection section, @NonNull O object);
 
 }

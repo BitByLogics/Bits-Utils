@@ -34,7 +34,7 @@ public class ItemStackUtil {
      * @return New ItemStack instance.
      */
     public static ItemStack getFromConfig(@NonNull ConfigurationSection section, StringModifier... modifiers) {
-        Optional<ItemStack> optionalItem = CONFIG_PARSER.serializeFrom(section);
+        Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section);
 
         if(optionalItem.isEmpty()) {
             return new ItemStack(Material.OAK_LOG);
@@ -47,7 +47,7 @@ public class ItemStackUtil {
     }
 
     public static void saveToConfig(@NonNull ConfigurationSection section, @NonNull ItemStack item) {
-        CONFIG_PARSER.serializeTo(section, item);
+        CONFIG_PARSER.serialize(section, item);
     }
 
     /**
