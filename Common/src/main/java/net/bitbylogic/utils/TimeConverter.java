@@ -101,7 +101,13 @@ public class TimeConverter {
         }
 
         if (seconds > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("seconds"))) {
-            message.append(seconds).append(".").append((int) (milliseconds / 100)).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes)).append(longPrefixes ? (seconds > 1 ? "s" : "") : "");
+            message.append(seconds);
+
+            if(Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("milliseconds"))) {
+                message.append(".").append((int) (milliseconds / 100));
+            }
+
+            message.append(TimeAbbreviation.SECOND.getPrefix(longPrefixes)).append(longPrefixes ? (seconds > 1 ? "s" : "") : "");
         }
 
         if(seconds <= 0 && milliseconds > 0 && milliseconds < 1000 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("milliseconds"))) {
