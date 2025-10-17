@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;
+import org.joml.Vector3f;
 
 import java.util.Objects;
 
@@ -55,6 +56,52 @@ public class OffsetLocation {
                 (zOffset != location.getZOffset() ? 1 : 0) == 1;
     }
 
+    public @NonNull OffsetLocation[] getAdjacent() {
+        OffsetLocation[] adjacent = new OffsetLocation[6];
+
+        adjacent[0] = new OffsetLocation(xOffset + 1, yOffset, zOffset);
+        adjacent[1] = new OffsetLocation(xOffset - 1, yOffset, zOffset);
+        adjacent[2] = new OffsetLocation(xOffset, yOffset + 1, zOffset);
+        adjacent[3] = new OffsetLocation(xOffset, yOffset - 1, zOffset);
+        adjacent[4] = new OffsetLocation(xOffset, yOffset, zOffset + 1);
+        adjacent[5] = new OffsetLocation(xOffset, yOffset, zOffset - 1);
+
+        return adjacent;
+    }
+
+    public OffsetLocation[] getAdjacentIncludingDiagonals() {
+        OffsetLocation[] neighbors = new OffsetLocation[26];
+        int index = 0;
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    neighbors[index++] = new OffsetLocation(xOffset + dx, yOffset + dy, zOffset + dz);
+                }
+            }
+        }
+        return neighbors;
+    }
+
+    public Vector3f toVector() {
+        return new Vector3f((float) xOffset, (float) yOffset, (float) zOffset);
+    }
+
+    public Direction directionTo(@NonNull OffsetLocation neighbor) {
+        double dx = neighbor.xOffset - xOffset;
+        double dy = neighbor.yOffset - yOffset;
+        double dz = neighbor.zOffset - zOffset;
+
+        if (dx > 0) return Direction.EAST;
+        if (dx < 0) return Direction.WEST;
+        if (dy > 0) return Direction.UP;
+        if (dy < 0) return Direction.DOWN;
+        if (dz > 0) return Direction.SOUTH;
+        if (dz < 0) return Direction.NORTH;
+
+        return null;
+    }
+
     @Override
     public boolean equals(Object object) {
         if (this == object) return true;
@@ -71,6 +118,21 @@ public class OffsetLocation {
     @Override
     public String toString() {
         return String.format("%.2f:%.2f:%.2f", xOffset, yOffset, zOffset);
+    }
+
+    public enum Direction {
+        UP, DOWN, NORTH, SOUTH, EAST, WEST;
+
+        public Direction getOpposite() {
+            return switch (this) {
+                case UP -> DOWN;
+                case DOWN -> UP;
+                case NORTH -> SOUTH;
+                case SOUTH -> NORTH;
+                case EAST -> WEST;
+                case WEST -> EAST;
+            };
+        }
     }
 
 }
