@@ -102,7 +102,10 @@ public class Hologram {
                 lineDisplay.getPersistentDataContainer().set(HOLOGRAM_KEY, PersistentDataType.BOOLEAN, true);
 
                 Transformation transformation = lineDisplay.getTransformation();
-                transformation.getTranslation().set(0, transformation.getTranslation().y + (lineSpacing * i), 0);
+
+                if(line.isApplyLineSpacing()) {
+                    transformation.getTranslation().add(0, transformation.getTranslation().y + (lineSpacing * i), 0);
+                }
 
                 line.setLineOffset(new Vector3f(transformation.getTranslation()));
                 lineDisplay.setTransformation(transformation);

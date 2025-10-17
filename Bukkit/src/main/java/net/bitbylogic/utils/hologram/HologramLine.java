@@ -22,6 +22,8 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -35,6 +37,8 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
             new Vector3f(1, 1, 1),
             new Quaternionf()
     );
+
+    private final Map<String, Object> metadata = new HashMap<>();
 
     private @NonNull String id = UUID.randomUUID().toString();
 
@@ -51,6 +55,9 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
 
     private T data;
     private Supplier<T> dataSupplier;
+
+    @Setter
+    private boolean applyLineSpacing = true;
 
     private transient @Nullable Display display;
 
@@ -179,6 +186,20 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
         this.yaw = yaw;
         this.pitch = pitch;
         return self();
+    }
+
+    public SELF applyLineSpacing(boolean applyLineSpacing) {
+        this.applyLineSpacing = applyLineSpacing;
+        return self();
+    }
+
+    public SELF metadata(@NonNull String key, @NonNull Object value) {
+        metadata.put(key, value);
+        return self();
+    }
+
+    public @Nullable Object getMetadata(@NonNull String key) {
+        return metadata.get(key);
     }
 
     protected Display build(@NonNull Location location, boolean persistent, boolean global) {
