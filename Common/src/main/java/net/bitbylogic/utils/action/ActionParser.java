@@ -18,10 +18,11 @@ public class ActionParser {
     }
 
     public static Optional<ParsedAction> parseAction(@NonNull String actionData) {
-        String[] data = actionData.split(":", 2);
-        String id = data[0];
+        String[] splitData = actionData.split(":", 2);
+        String id = splitData[0];
+        String data = splitData[1];
 
-        return Optional.of(new ParsedAction(new ActionReference(id), new StringActionData(actionData)));
+        return Optional.of(new ParsedAction(new ActionReference(id), new StringActionData(data)));
     }
 
 }

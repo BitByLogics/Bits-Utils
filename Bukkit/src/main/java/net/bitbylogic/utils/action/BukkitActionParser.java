@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public class BukkitActionParser extends ActionParser {
 
-    static {
+    public static void register() {
         ActionRegistry.register(
                 new BroadcastMessageAction(), new BroadcastSoundAction(),
                 new ConsoleCommandAction(), new PlayerCommandAction(),
