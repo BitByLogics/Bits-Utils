@@ -262,4 +262,18 @@ public class ReflectionUtil {
         return Void.class;
     }
 
+    public static void forceLoad(Class<?>... classes) {
+        for (Class<?> clazz : classes) {
+            forceLoad(clazz);
+        }
+    }
+
+    public static void forceLoad(Class<?> clazz) {
+        try {
+            Class.forName(clazz.getName());
+        } catch (ClassNotFoundException ignored) {
+
+        }
+    }
+
 }
