@@ -6,7 +6,7 @@
     <parent>
         <groupId>net.bitbylogic</groupId>
         <artifactId>bits-utils</artifactId>
-        <version>2.1.0</version>
+        <version>2.1.1</version>
     </parent>
 
     <artifactId>bits-utils-bukkit</artifactId>
@@ -50,14 +50,14 @@
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-common</artifactId>
-            <version>2.1.0</version>
+            <version>2.1.1</version>
         </dependency>
 
         <!-- Bit's Utils Paper -->
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-paper</artifactId>
-            <version>2.1.0</version>
+            <version>2.1.1</version>
         </dependency>
 
         <!-- PlaceholderAPI -->
