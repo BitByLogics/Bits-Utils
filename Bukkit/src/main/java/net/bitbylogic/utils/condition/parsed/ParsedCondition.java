@@ -1,5 +1,6 @@
 package net.bitbylogic.utils.condition.parsed;
 
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import net.bitbylogic.utils.condition.reference.ConditionReference;
@@ -7,6 +8,7 @@ import net.bitbylogic.utils.config.metadata.ConfiguredMetadata;
 import net.bitbylogic.utils.context.BukkitContextKeys;
 import net.bitbylogic.utils.context.Context;
 
+@Getter
 @RequiredArgsConstructor
 public class ParsedCondition {
 
