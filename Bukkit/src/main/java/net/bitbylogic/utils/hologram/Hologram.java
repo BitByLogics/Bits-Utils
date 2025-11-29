@@ -149,7 +149,7 @@ public class Hologram {
                 line.build(location, persistent, global);
             }
 
-            if (line.getDisplay() == null) {
+            if (line.getDisplay() == null || !line.isApplyLineSpacing()) {
                 continue;
             }
 
