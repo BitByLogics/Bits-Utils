@@ -173,6 +173,24 @@ public class ConfiguredMetadata {
         return result.isEmpty() ? fallback : result;
     }
 
+    private void loadSection(@NonNull ConfigurationSection section, @Nullable String prefix) {
+        section.getKeys(false).forEach(key -> {
+            Object value = section.get(key);
+
+            if (value instanceof ConfigurationSection keySection) {
+                loadSection(keySection, prefix == null ? key : prefix + "." + key);
+                return;
+            }
+
+            if (prefix != null) {
+                metadataDeepMap.put(prefix + "." + key.toLowerCase(), value);
+                return;
+            }
+
+            metadataMap.put(key.toLowerCase(), value);
+        });
+    }
+
     /**
      * Loads/reloads values from the given configuration section.
      * Clears existing values first.
@@ -189,13 +207,7 @@ public class ConfiguredMetadata {
             return;
         }
 
-        section.getKeys(false).forEach(key ->
-                metadataMap.put(key.toLowerCase(), section.get(key))
-        );
-
-        section.getKeys(true).forEach(key ->
-                metadataDeepMap.put(key.toLowerCase(), section.get(key))
-        );
+        loadSection(section, null);
     }
 
 
