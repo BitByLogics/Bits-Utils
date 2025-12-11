@@ -61,7 +61,7 @@ public class ConfiguredMetadata {
     }
 
     public <T> T getDeepValueAsOrDefault(@NonNull String key, T defaultValue) {
-        Object value = metadataDeepMap.getValueAsOrDefault(key.toLowerCase(), defaultValue);
+        Object value = metadataDeepMap.getValueAsOrDefault(key.toLowerCase(), metadataMap.getValueAsOrDefault(key.toLowerCase(), defaultValue));
 
         if (defaultValue instanceof Double && value instanceof Number) {
             return (T) Double.valueOf(((Number) value).doubleValue());
