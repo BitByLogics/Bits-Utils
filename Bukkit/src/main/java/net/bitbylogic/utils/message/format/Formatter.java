@@ -439,6 +439,16 @@ public class Formatter {
         player.sendMessage(centerMessage(message));
     }
 
+    private org.bukkit.Color hexToRGB(String hex) {
+        hex = hex.replace("#", "");
+
+        int r = Integer.valueOf(hex.substring(0, 2), 16);
+        int g = Integer.valueOf(hex.substring(2, 4), 16);
+        int b = Integer.valueOf(hex.substring(4, 6), 16);
+
+        return org.bukkit.Color.fromRGB(r, g, b);
+    }
+
     public static String translateForConsole(String message) {
         String colored = ChatColor.translateAlternateColorCodes('&', message)
                 .replace("§0", "\u001B[30m")
