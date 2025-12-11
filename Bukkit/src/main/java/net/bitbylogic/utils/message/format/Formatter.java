@@ -439,7 +439,7 @@ public class Formatter {
         player.sendMessage(centerMessage(message));
     }
 
-    private org.bukkit.Color hexToRGB(String hex) {
+    public static org.bukkit.Color hexToRGB(String hex) {
         hex = hex.replace("#", "");
 
         int r = Integer.valueOf(hex.substring(0, 2), 16);
