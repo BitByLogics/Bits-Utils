@@ -183,7 +183,7 @@ public class ConfiguredMetadata {
             }
 
             if (prefix != null) {
-                metadataDeepMap.put(prefix + "." + key.toLowerCase(), value);
+                metadataDeepMap.put((prefix + "." + key).toLowerCase(), value);
                 return;
             }
 
