@@ -71,6 +71,13 @@ public abstract class Messages {
                     }
 
                     config.set(key.getPath(), valuesToSave);
+
+                    try {
+                        config.save(localeConfig);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
                     continue;
                 }
 
@@ -79,7 +86,6 @@ public abstract class Messages {
                 if (config.isList(key.getPath())) {
                     List<String> value = new ArrayList<>(config.getStringList(key.getPath()));
 
-                    key.getValues().clear();
                     key.getValues(locale).addAll(value);
                     continue;
                 }
@@ -91,12 +97,6 @@ public abstract class Messages {
                 }
 
                 key.getValues(locale).add(value);
-
-                try {
-                    config.save(localeConfig);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         }
     }
