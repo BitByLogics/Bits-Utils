@@ -62,6 +62,10 @@ public class MessageKey {
         return Formatter.format(values.get(locale).getFirst(), modifiers);
     }
 
+    public String get(StringModifier... modifiers) {
+        return Formatter.format(values.get(Locale.ENGLISH).getFirst(), modifiers);
+    }
+
     public void send(@NonNull Context context, StringModifier... modifiers) {
         Player player = context.get(BukkitContextKeys.PLAYER).orElse(null);
 
