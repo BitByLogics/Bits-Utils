@@ -51,9 +51,7 @@ public class MessageKey {
 
         String[] parts = localeString.split("_", 2);
 
-        Locale locale = parts.length == 2
-                ? Locale.of(parts[0], parts[1].toUpperCase())
-                : Locale.of(parts[0]);
+        Locale locale = Locale.of(parts[0]);
 
         return get(locale, modifiers);
     }
