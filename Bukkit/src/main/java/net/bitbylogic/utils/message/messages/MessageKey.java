@@ -42,6 +42,22 @@ public class MessageKey {
         return get(locale);
     }
 
+    public String get(@NonNull Player player) {
+        String localeString = player.getLocale();
+
+        if (localeString.isEmpty()) {
+            return get(Locale.ENGLISH);
+        }
+
+        String[] parts = localeString.split("_", 2);
+
+        Locale locale = parts.length == 2
+                ? Locale.of(parts[0], parts[1].toUpperCase())
+                : Locale.of(parts[0]);
+
+        return get(locale);
+    }
+
     public String get(@NonNull Locale locale, StringModifier... modifiers) {
         return Formatter.format(values.get(locale).getFirst(), modifiers);
     }
