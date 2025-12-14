@@ -49,11 +49,15 @@ public abstract class Messages {
             registrar.register();
         }
 
-        for (Locale locale : SUPPORTED_LOCALES) {
-            File localeConfig = new File(messagesFolder, locale.toLanguageTag() + ".yml");
-            FileConfiguration config = YamlConfiguration.loadConfiguration(localeConfig);
+        reload(messagesFolder);
+    }
 
-            for (MessageKey key : REGISTRY.values()) {
+    public static void reload(@NonNull File messagesFolder) {
+        for (MessageKey key : REGISTRY.values()) {
+            for (Locale locale : SUPPORTED_LOCALES) {
+                File localeConfig = new File(messagesFolder, locale.toLanguageTag() + ".yml");
+                FileConfiguration config = YamlConfiguration.loadConfiguration(localeConfig);
+
                 if(!config.isSet(key.getPath())) {
                     List<String> valuesToSave = key.getValues(locale);
 
@@ -70,6 +74,8 @@ public abstract class Messages {
                     continue;
                 }
 
+                key.getValues().put(locale, new ArrayList<>());
+
                 if (config.isList(key.getPath())) {
                     List<String> value = new ArrayList<>(config.getStringList(key.getPath()));
 
@@ -85,12 +91,12 @@ public abstract class Messages {
                 }
 
                 key.getValues(locale).add(value);
-            }
 
-            try {
-                config.save(localeConfig);
-            } catch (IOException e) {
-                e.printStackTrace();
+                try {
+                    config.save(localeConfig);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
