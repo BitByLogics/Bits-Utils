@@ -55,7 +55,7 @@ public abstract class Messages {
 
             for (MessageKey key : REGISTRY.values()) {
                 if(!config.isSet(key.getPath())) {
-                    List<String> valuesToSave = key.getValues();
+                    List<String> valuesToSave = key.getValues(locale);
 
                     if(valuesToSave.isEmpty()) {
                         continue;
@@ -74,7 +74,7 @@ public abstract class Messages {
                     List<String> value = new ArrayList<>(config.getStringList(key.getPath()));
 
                     key.getValues().clear();
-                    key.getValues().addAll(value);
+                    key.getValues(locale).addAll(value);
                     continue;
                 }
 
@@ -84,7 +84,7 @@ public abstract class Messages {
                     continue;
                 }
 
-                key.getValues().add(value);
+                key.getValues(locale).add(value);
             }
 
             try {
