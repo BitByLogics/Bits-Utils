@@ -42,7 +42,7 @@ public class MessageKey {
         return get(locale);
     }
 
-    public String get(@NonNull Player player) {
+    public String get(@NonNull Player player, StringModifier... modifiers) {
         String localeString = player.getLocale();
 
         if (localeString.isEmpty()) {
@@ -55,7 +55,7 @@ public class MessageKey {
                 ? Locale.of(parts[0], parts[1].toUpperCase())
                 : Locale.of(parts[0]);
 
-        return get(locale);
+        return get(locale, modifiers);
     }
 
     public String get(@NonNull Locale locale, StringModifier... modifiers) {
