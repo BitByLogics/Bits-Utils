@@ -33,7 +33,7 @@ public class MessageKey {
     }
 
     public List<String> getValues(@NonNull Locale locale) {
-        return values.computeIfAbsent(locale, loc -> values.get(Locale.ENGLISH));
+        return values.computeIfAbsent(locale, loc -> new ArrayList<>(values.getOrDefault(Locale.ENGLISH, new ArrayList<>())));
     }
 
     public String get(@NonNull Context context) {
