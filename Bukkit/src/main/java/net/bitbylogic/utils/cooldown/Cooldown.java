@@ -10,35 +10,35 @@ public class Cooldown {
 
     private final UUID identifier;
     private final String cooldownId;
-    private final long timeOfCreation;
+
+    private final long startTime;
     private final long duration;
 
     public Cooldown(UUID identifier, String cooldownId, long duration) {
         this.identifier = identifier;
         this.cooldownId = cooldownId;
-        this.timeOfCreation = System.currentTimeMillis();
+        this.startTime = System.currentTimeMillis();
         this.duration = duration;
     }
 
     public boolean isActive() {
-        return System.currentTimeMillis() < timeOfCreation + duration;
+        return System.currentTimeMillis() < startTime + duration;
     }
 
     public long getTimeUntilExpired() {
-        return isActive() ? (timeOfCreation + duration) - System.currentTimeMillis() : -1;
+        return isActive() ? (startTime + duration) - System.currentTimeMillis() : -1;
     }
 
     @Override
-    public boolean equals(Object object) {
-        if (this == object) return true;
-        if (object == null || getClass() != object.getClass()) return false;
-        Cooldown cooldown = (Cooldown) object;
-        return timeOfCreation == cooldown.timeOfCreation && duration == cooldown.duration && Objects.equals(identifier, cooldown.identifier) && Objects.equals(cooldownId, cooldown.cooldownId);
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Cooldown cooldown = (Cooldown) o;
+        return startTime == cooldown.startTime && duration == cooldown.duration && Objects.equals(identifier, cooldown.identifier) && Objects.equals(cooldownId, cooldown.cooldownId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(identifier, cooldownId, timeOfCreation, duration);
+        return Objects.hash(identifier, cooldownId, startTime, duration);
     }
 
 }

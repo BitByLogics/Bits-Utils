@@ -5,13 +5,17 @@ import net.bitbylogic.utils.TimeConverter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class CooldownUtil {
 
-    private static final HashMap<UUID, List<Cooldown>> COOLDOWNS = new HashMap<>();
+    private static final ConcurrentHashMap<UUID, List<Cooldown>> COOLDOWNS = new ConcurrentHashMap<>();
 
     public static void startCooldown(String key, UUID identifier) {
         List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
@@ -72,16 +76,45 @@ public class CooldownUtil {
         }
     }
 
-    public static void endCooldown(String key, UUID identifier) {
-        List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
-        currentCooldowns.removeIf(cooldown -> cooldown.getIdentifier().equals(identifier) && cooldown.getCooldownId().equalsIgnoreCase(key));
+    public static void attemptRun(@NonNull String key, @NonNull UUID identifier, long cooldownTime, @NonNull TimeUnit timeUnit, @NonNull Runnable runnable) {
+        synchronized (COOLDOWNS) {
+            if (!hasCooldown(key, identifier)) {
+                List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
+                Cooldown cooldown = new Cooldown(identifier, key, timeUnit.toMillis(cooldownTime));
+                currentCooldowns.add(cooldown);
+                COOLDOWNS.put(identifier, currentCooldowns);
+                runnable.run();
+                return;
+            }
+
+            getCooldown(key, identifier).ifPresent(cooldown -> {
+                if (cooldown.isActive()) {
+                    return;
+                }
+
+                List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
+                Cooldown newCooldown = new Cooldown(identifier, key, timeUnit.toMillis(cooldownTime));
+                currentCooldowns.remove(cooldown);
+                currentCooldowns.add(newCooldown);
+                COOLDOWNS.put(identifier, currentCooldowns);
+                runnable.run();
+            });
+        }
+    }
+
+    public static void endCooldown(@NonNull String key, @NonNull UUID identifier) {
+        getCooldowns(identifier).removeIf(cooldown -> cooldown.getIdentifier().equals(identifier) && cooldown.getCooldownId().equalsIgnoreCase(key));
+    }
+
+    public static List<Cooldown> getCooldowns(@NonNull UUID identifier) {
+        return COOLDOWNS.computeIfAbsent(identifier, uuid -> new ArrayList<>());
     }
 
     public static Optional<Cooldown> getCooldown(@NonNull String key, @NonNull UUID identifier) {
-        return COOLDOWNS.getOrDefault(identifier, new ArrayList<>()).stream().filter(cd -> cd != null && cd.getCooldownId().equalsIgnoreCase(key)).findFirst();
+        return getCooldowns(identifier).stream().filter(cd -> cd != null && cd.getCooldownId().equalsIgnoreCase(key)).findFirst();
     }
 
-    public static boolean hasCooldown(String key, UUID identifier) {
+    public static boolean hasCooldown(@NonNull String key, @NonNull UUID identifier) {
         return getCooldown(key, identifier).isPresent();
     }
 
