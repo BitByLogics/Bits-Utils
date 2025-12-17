@@ -24,6 +24,27 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
         return new ChunkPosition(chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
     }
 
+    /**
+     * Distance between two chunks, measured in chunks.
+     *
+     * @throws IllegalArgumentException if worlds differ
+     */
+    public double distance(@NonNull ChunkPosition chunk) {
+        if (!this.world.equals(chunk.world)) {
+            throw new IllegalArgumentException("Cannot compare chunks in different worlds");
+        }
+
+        double thisCenterX = (this.x << 4) + 8;
+        double thisCenterZ = (this.z << 4) + 8;
+        double otherCenterX = (chunk.x << 4) + 8;
+        double otherCenterZ = (chunk.z << 4) + 8;
+
+        double dx = thisCenterX - otherCenterX;
+        double dz = thisCenterZ - otherCenterZ;
+
+        return Math.sqrt(dx * dx + dz * dz) / 16.0;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
