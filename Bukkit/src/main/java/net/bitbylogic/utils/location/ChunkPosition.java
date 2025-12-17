@@ -5,8 +5,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 public record ChunkPosition(@NonNull String world, int x, int z) {
 
@@ -43,6 +45,38 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
         double dz = thisCenterZ - otherCenterZ;
 
         return Math.sqrt(dx * dx + dz * dz) / 16.0;
+    }
+
+    /**
+     * Gets all chunk positions within the given chunk radius
+     *
+     * @param radius chunk radius
+     * @throws IllegalArgumentException if radius < 0
+     */
+    public @NonNull Set<ChunkPosition> getNearbyChunks(int radius) {
+        if (radius < 0) {
+            throw new IllegalArgumentException("Radius must be >= 0");
+        }
+
+        Set<ChunkPosition> result = new HashSet<>();
+
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                ChunkPosition chunk = new ChunkPosition(
+                        this.world,
+                        this.x + dx,
+                        this.z + dz
+                );
+
+                if (distance(chunk) > radius) {
+                    continue;
+                }
+
+                result.add(chunk);
+            }
+        }
+
+        return result;
     }
 
     @Override
