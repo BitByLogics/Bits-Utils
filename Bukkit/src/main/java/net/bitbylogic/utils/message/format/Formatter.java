@@ -22,7 +22,9 @@ import java.awt.*;
 import java.io.File;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Formatter {
 
@@ -30,10 +32,16 @@ public class Formatter {
     private static final List<StringModifier> GLOBAL_MODIFIERS = new ArrayList<>();
 
     @Getter
-    private static final HashMap<String, Long> MESSAGE_COOLDOWNS = new HashMap<>();
+    private static final Map<String, Long> MESSAGE_COOLDOWNS = new ConcurrentHashMap<>();
 
     @Getter
     private static FormatConfig config;
+
+    private static final Map<String, String> FORMAT_CACHE = new ConcurrentHashMap<>(256);
+    private static final int MAX_CACHE_SIZE = 1000;
+
+    private static final Map<String, ChatColor> HEX_COLOR_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, String> CONSOLE_COLOR_MAP = createConsoleColorMap();
 
     public static void registerConfig(@NonNull File configFile) {
         config = new FormatConfig(configFile);
@@ -41,41 +49,67 @@ public class Formatter {
 
     public static void registerGlobalModifier(StringModifier... modifiers) {
         GLOBAL_MODIFIERS.addAll(Arrays.asList(modifiers));
+
+        FORMAT_CACHE.clear();
     }
 
     public static String color(String message) {
+        if (message == null || message.isEmpty()) {
+            return message;
+        }
+
         String coloredMessage = ChatColor.translateAlternateColorCodes('&', message);
 
-        Matcher matcher = config.getHexPattern().matcher(coloredMessage);
+        Pattern hexPattern = config.getHexPattern();
+        Matcher matcher = hexPattern.matcher(coloredMessage);
+
+        if (!matcher.find()) {
+            return coloredMessage;
+        }
+
+        matcher.reset();
+        StringBuilder sb = new StringBuilder(coloredMessage.length() + 32);
 
         while (matcher.find()) {
             String hexColor = matcher.group();
-            coloredMessage = coloredMessage.replace(hexColor, ChatColor.of(hexColor).toString());
+            ChatColor chatColor = HEX_COLOR_CACHE.computeIfAbsent(hexColor, ChatColor::of);
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(chatColor.toString()));
         }
 
-        return coloredMessage;
+        matcher.appendTail(sb);
+
+        return sb.toString();
     }
 
     public static String reverseColors(@NonNull String message) {
         Matcher matcher = config.getSpigotHexPattern().matcher(message);
 
+        if (!matcher.find()) {
+            return message.replace("§", "&");
+        }
+
+        matcher.reset();
+        StringBuilder sb = new StringBuilder(message.length());
+
         while (matcher.find()) {
             String match = matcher.group();
-
             StringBuilder hexColor = new StringBuilder("#");
+
             for (int i = 2; i < match.length(); i += 2) {
                 hexColor.append(match.charAt(i + 1));
             }
 
-            message = message.replaceFirst(match, hexColor.toString());
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(hexColor.toString()));
         }
 
-        return message.replace("§", "&");
+        matcher.appendTail(sb);
+
+        return sb.toString().replace("§", "&");
     }
 
     public static ChatColor colorToChatColor(@NonNull org.bukkit.Color color) {
         String hex = String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
-        return ChatColor.of(hex);
+        return HEX_COLOR_CACHE.computeIfAbsent(hex, ChatColor::of);
     }
 
     public static String format(String message, StringModifier... modifiers) {
@@ -90,74 +124,120 @@ public class Formatter {
      * @return The formatted string.
      */
     public static String format(String message, @Nullable Player player, StringModifier... modifiers) {
+        if (message == null || message.isEmpty()) {
+            return message;
+        }
+
+        boolean canCache = player == null && modifiers.length == 0 && GLOBAL_MODIFIERS.isEmpty();
+        String cacheKey = canCache ? message : null;
+
+        if (canCache) {
+            String cached = FORMAT_CACHE.get(cacheKey);
+
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         String formattedMessage = message;
 
+        if (modifiers.length > 0) {
+            formattedMessage = applyModifiers(formattedMessage, player, modifiers);
+        }
+
+        if (!GLOBAL_MODIFIERS.isEmpty()) {
+            formattedMessage = applyModifiers(formattedMessage, player,
+                    GLOBAL_MODIFIERS.toArray(new StringModifier[0]));
+        }
+
+        if (containsFormatCodes(formattedMessage)) {
+            formattedMessage = processFormatCodes(formattedMessage);
+        }
+
+        formattedMessage = color(formattedMessage);
+
+        if (canCache && FORMAT_CACHE.size() < MAX_CACHE_SIZE) {
+            FORMAT_CACHE.put(cacheKey, formattedMessage);
+        }
+
+        return formattedMessage;
+    }
+
+    private static boolean containsFormatCodes(String message) {
+        return message.indexOf('<') >= 0 || message.indexOf('[') >= 0;
+    }
+
+    private static String applyModifiers(String message, @Nullable Player player, StringModifier[] modifiers) {
+        String result = message;
+
         for (StringModifier modifier : modifiers) {
-            if(modifier instanceof PlayerStringModifier playerStringModifier) {
-                playerStringModifier.modify(formattedMessage, player);
+            if (modifier instanceof PlayerStringModifier playerModifier) {
+                result = playerModifier.modify(result, player);
+            } else {
+                result = modifier.modify(result);
+            }
+        }
+        return result;
+    }
+
+    private static String processFormatCodes(String message) {
+        List<FormatData> formatData = new ArrayList<>(8);
+        Deque<FormatData> queue = new ArrayDeque<>(8);
+        queue.add(new FormatData(null, null, null, message));
+
+        while (!queue.isEmpty()) {
+            FormatData data = queue.poll();
+            List<FormatData> newData = findFormatMatches(data.getContents());
+
+            if (newData.isEmpty()) {
                 continue;
             }
-
-            formattedMessage = modifier.modify(formattedMessage);
-        }
-
-        for (StringModifier globalModifier : GLOBAL_MODIFIERS) {
-            if(globalModifier instanceof PlayerStringModifier playerStringModifier) {
-                playerStringModifier.modify(formattedMessage, player);
-                continue;
-            }
-
-            formattedMessage = globalModifier.modify(formattedMessage);
-        }
-
-        List<FormatData> formatData = new ArrayList<>();
-        List<FormatData> temporaryData = new ArrayList<>();
-
-        temporaryData.add(new FormatData(null, null, null, formattedMessage));
-
-        while (!temporaryData.isEmpty()) {
-            FormatData data = temporaryData.removeFirst();
-            String stringToAnalyze = data.getContents();
-
-            List<FormatData> newData = findFormatMatches(stringToAnalyze);
 
             if (data.getEntireMatch() != null) {
-                newData.forEach(nd -> nd.setParentData(data));
+                for (FormatData nd : newData) {
+                    nd.setParentData(data);
+                }
             }
 
             formatData.addAll(newData);
-            temporaryData.addAll(newData);
+            queue.addAll(newData);
         }
 
-        formatData.sort((dataOne, dataTwo) -> {
-            FormatCode codeOne = dataOne.getCode();
-            FormatCode codeTwo = dataTwo.getCode();
-            return Integer.compare(codeOne.getPriority(), codeTwo.getPriority());
-        });
+        if (formatData.isEmpty()) {
+            return message;
+        }
 
+        formatData.sort(Comparator.comparingInt(d -> d.getCode().getPriority()));
+
+        String result = message;
         for (FormatData data : formatData) {
-            formattedMessage = data.format(formattedMessage);
+            result = data.format(result);
         }
 
-        return color(formattedMessage);
+        return result;
     }
 
     private static List<FormatData> findFormatMatches(@NonNull String string) {
-        List<FormatData> formatData = new ArrayList<>();
-        Matcher matcher = config.getFormatPattern().matcher(string);
+        Pattern formatPattern = config.getFormatPattern();
+        Matcher matcher = formatPattern.matcher(string);
+
+        if (!matcher.find()) {
+            return Collections.emptyList();
+        }
+
+        matcher.reset();
+        List<FormatData> formatData = new ArrayList<>(4);
 
         while (matcher.find()) {
-            String codeIdentifier = matcher.group(1) == null ? matcher.group(3) : matcher.group(1);
+            String codeIdentifier = matcher.group(1) != null ? matcher.group(1) : matcher.group(3);
             String codeData = matcher.group(4);
-            String text = matcher.group(2) == null ? matcher.group(5) : matcher.group(2);
+            String text = matcher.group(2) != null ? matcher.group(2) : matcher.group(5);
 
             FormatCode code = FormatCode.match(codeIdentifier);
 
-            if (code == null) {
-                continue;
+            if (code != null) {
+                formatData.add(new FormatData(matcher.group(), code, codeData, text));
             }
-
-            formatData.add(new FormatData(matcher.group(), code, codeData, text));
         }
 
         return formatData;
@@ -165,18 +245,17 @@ public class Formatter {
 
     public static String autoFormat(String message, Object... replacements) {
         Matcher placeholderMatcher = config.getPlaceholderPattern().matcher(message);
-
+        StringBuilder sb = new StringBuilder(message.length() + 32);
         int currentIndex = 0;
-        while (placeholderMatcher.find()) {
-            if (currentIndex > replacements.length) {
-                break;
-            }
 
-            String placeholder = placeholderMatcher.group();
-            message = message.replace(placeholder, replacements[currentIndex++].toString());
+        while (placeholderMatcher.find() && currentIndex < replacements.length) {
+            placeholderMatcher.appendReplacement(sb,
+                    Matcher.quoteReplacement(replacements[currentIndex++].toString()));
         }
 
-        return format(message);
+        placeholderMatcher.appendTail(sb);
+
+        return format(sb.toString());
     }
 
     public static BaseComponent richFormat(String message, Object... replacements) {
@@ -187,16 +266,12 @@ public class Formatter {
         String formattedMessage = message;
 
         for (Object replacement : replacements) {
-            if (replacement instanceof StringModifier) {
-                formattedMessage = ((StringModifier) replacement).modify(formattedMessage);
-                continue;
+            if (replacement instanceof StringModifier modifier) {
+                formattedMessage = modifier.modify(formattedMessage);
+            } else if (formattedMessage.contains("%s")) {
+                formattedMessage = formattedMessage.replaceFirst("%s",
+                        Matcher.quoteReplacement(replacement.toString()));
             }
-
-            if (!formattedMessage.contains("%s")) {
-                continue;
-            }
-
-            formattedMessage = formattedMessage.replaceFirst("%s", Matcher.quoteReplacement(replacement.toString()));
         }
 
         return format(formattedMessage);
@@ -205,56 +280,69 @@ public class Formatter {
     public static String command(String command, String description) {
         return replace(config.getConfigValue("Command"),
                 new Placeholder("%command%", command),
-                new Placeholder("%description%", description)
-        );
+                new Placeholder("%description%", description));
     }
 
     public static BaseComponent richCommand(String command, String description) {
-        BaseComponent component = richFormat(config.getConfigValue("Rich-Format.Text"), new Placeholder("%command%", command));
+        BaseComponent component = richFormat(config.getConfigValue("Rich-Format.Text"),
+                new Placeholder("%command%", command));
         component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text(richFormat(config.getConfigValue("Rich-Format.Hover"), new Placeholder("%description%", description)))));
-
+                new Text(richFormat(config.getConfigValue("Rich-Format.Hover"),
+                        new Placeholder("%description%", description)))));
         return component;
     }
 
     public static String main(String prefix, String message, Object... replacements) {
         return replace(config.getConfigValue("Main"),
                 new Placeholder("%prefix%", prefix),
-                new Placeholder("%message%", replace(message, applyHighlightColor(BitColor.getColor("primary"), BitColor.getColor("highlight"), replacements))));
+                new Placeholder("%message%", replace(message,
+                        applyHighlightColor(BitColor.getColor("primary"),
+                                BitColor.getColor("highlight"), replacements))));
     }
 
     public static String error(String prefix, String message, Object... replacements) {
         return replace(config.getConfigValue("Error"),
                 new Placeholder("%prefix%", prefix),
-                new Placeholder("%message%", replace(message, applyHighlightColor(BitColor.getColor("error-secondary"), BitColor.getColor("error-highlight"), replacements))));
+                new Placeholder("%message%", replace(message,
+                        applyHighlightColor(BitColor.getColor("error-secondary"),
+                                BitColor.getColor("error-highlight"), replacements))));
     }
 
     public static String success(String prefix, String message, Object... replacements) {
         return replace(config.getConfigValue("Success"),
                 new Placeholder("%prefix%", prefix),
-                new Placeholder("%message%", replace(message, applyHighlightColor(BitColor.getColor("success-secondary"), BitColor.getColor("success-highlight"), replacements))));
+                new Placeholder("%message%", replace(message,
+                        applyHighlightColor(BitColor.getColor("success-secondary"),
+                                BitColor.getColor("success-highlight"), replacements))));
     }
 
     public static String listHeader(String prefix, String info, Object... replacements) {
         return replace(config.getConfigValue("List.Header"),
                 new Placeholder("%prefix%", prefix),
-                new Placeholder("%info%", replace(info, applyHighlightColor(BitColor.getColor("secondary"), BitColor.getColor("highlight"), replacements))));
+                new Placeholder("%info%", replace(info,
+                        applyHighlightColor(BitColor.getColor("secondary"),
+                                BitColor.getColor("highlight"), replacements))));
     }
 
     public static String listItem(String prefix, String message, Object... replacements) {
         return replace(config.getConfigValue("List.Item"),
                 new Placeholder("%prefix%", prefix),
-                new Placeholder("%message%", replace(message, applyHighlightColor(BitColor.getColor("success-primary"), BitColor.getColor("success-secondary"), replacements))));
+                new Placeholder("%message%", replace(message,
+                        applyHighlightColor(BitColor.getColor("success-primary"),
+                                BitColor.getColor("success-secondary"), replacements))));
     }
 
     public static String dottedMessage(String prefix, String message, Object... replacements) {
         return replace(config.getConfigValue("Dotted-Message"),
                 new Placeholder("%prefix%", prefix),
-                new Placeholder("%message%", replace(message, applyHighlightColor(BitColor.getColor("success-primary"), BitColor.getColor("success-secondary"), replacements))));
+                new Placeholder("%message%", replace(message,
+                        applyHighlightColor(BitColor.getColor("success-primary"),
+                                BitColor.getColor("success-secondary"), replacements))));
     }
 
     public static void sendMessage(Player player, String prefix, String message, Placeholder... placeholders) {
-        String formattedMessage = BitColor.getColor("primary") + "&l" + prefix + " &8• " + BitColor.getColor("secondary") + message;
+        String formattedMessage = BitColor.getColor("primary") + "&l" + prefix +
+                " &8• " + BitColor.getColor("secondary") + message;
 
         for (Placeholder placeholder : placeholders) {
             formattedMessage = placeholder.modify(formattedMessage);
@@ -266,7 +354,8 @@ public class Formatter {
     public static void sendRedisMessage(@NonNull RedisClient redisClient, UUID player, String message) {
         redisClient.sendListenerMessage(
                 new ListenerComponent(null, "abl-message")
-                        .addData("uuid", player).addData("message", message));
+                        .addData("uuid", player)
+                        .addData("message", message));
     }
 
     public static void sendRawMessage(Player player, String message, Placeholder... placeholders) {
@@ -284,7 +373,9 @@ public class Formatter {
             return;
         }
 
-        if (MESSAGE_COOLDOWNS.containsKey(id) && MESSAGE_COOLDOWNS.get(id) - System.currentTimeMillis() > 0) {
+        Long cooldownEnd = MESSAGE_COOLDOWNS.get(id);
+
+        if (cooldownEnd != null && cooldownEnd > System.currentTimeMillis()) {
             return;
         }
 
@@ -295,60 +386,61 @@ public class Formatter {
     }
 
     public static Object[] applyHighlightColor(String primaryColor, String highlightColor, Object[] objects) {
-        List<Object> formattedReplacements = new ArrayList<>();
+        Object[] result = new Object[objects.length];
 
-        for (Object o : objects) {
+        for (int i = 0; i < objects.length; i++) {
+            Object o = objects[i];
+
             if (o instanceof Placeholder placeholder) {
-                for (String key : placeholder.getPlaceholderMap().keySet()) {
-                    placeholder.getPlaceholderMap().compute(key,
-                            (k, value) -> highlightColor + value + primaryColor);
-                }
-
-                formattedReplacements.add(o);
-                continue;
+                Map<String, String> map = placeholder.getPlaceholderMap();
+                map.replaceAll((k, v) -> highlightColor + v + primaryColor);
+                result[i] = placeholder;
+            } else {
+                result[i] = highlightColor + o.toString() + primaryColor;
             }
-
-            formattedReplacements.add(highlightColor + o.toString() + primaryColor);
         }
 
-        return formattedReplacements.toArray();
+        return result;
     }
 
     public static String[] getPagedList(String header, List<String> data, int page) {
-        List<String> text = new ArrayList<>();
-
-        int pages = data.size() / 10.0d % 1 == 0 ? data.size() / 10 : data.size() / 10 + 1;
-        int lastPossibleItem = data.size();
-
-        if (page == 0 || page > pages) {
-            text.add(Formatter.error(header, config.getConfigValue("Paged.Invalid-Page")));
-            return text.toArray(new String[]{});
+        if (data.isEmpty()) {
+            return new String[]{Formatter.error(header, "No data available")};
         }
 
-        int startingItem = (page * 10) - 10;
-        int lastItem = Math.min(startingItem + 10, lastPossibleItem);
+        int itemsPerPage = 10;
+        int pages = (int) Math.ceil((double) data.size() / itemsPerPage);
+
+        if (page <= 0 || page > pages) {
+            return new String[]{Formatter.error(header, config.getConfigValue("Paged.Invalid-Page"))};
+        }
+
+        List<String> text = new ArrayList<>(itemsPerPage + 2);
+
+        int startingItem = (page - 1) * itemsPerPage;
+        int lastItem = Math.min(startingItem + itemsPerPage, data.size());
+
         text.add(main(header, ""));
 
         for (int i = startingItem; i < lastItem; i++) {
-            String item = data.get(i);
-            text.add(format(config.getConfigValue("Paged.Item"), new Placeholder("%text%", item)));
+            text.add(format(config.getConfigValue("Paged.Item"),
+                    new Placeholder("%text%", data.get(i))));
         }
 
         text.add(format(config.getConfigValue("Paged.Footer"),
                 new Placeholder("%current-page%", page),
                 new Placeholder("%pages%", pages)));
-        return text.toArray(new String[]{});
+
+        return text.toArray(new String[0]);
     }
 
     public static String applyGradientToText(String text, String[] colors) {
         int steps = text.length();
         String[] gradientColors = generateGradientColors(colors, steps);
-        StringBuilder gradientText = new StringBuilder();
+        StringBuilder gradientText = new StringBuilder(text.length() * 10);
 
         for (int i = 0; i < text.length(); i++) {
-            char ch = text.charAt(i);
-            String color = gradientColors[i];
-            gradientText.append(color).append(ch);
+            gradientText.append(gradientColors[i]).append(text.charAt(i));
         }
 
         return gradientText.toString();
@@ -359,40 +451,39 @@ public class Formatter {
         List<Color> colorList = new ArrayList<>();
 
         for (String color : colors) {
-            if (!color.startsWith("&")) {
+            if (color.startsWith("&")) {
+                stylePrefixes.add(color);
+            } else {
                 colorList.add(Color.decode(color));
-                continue;
             }
-
-            stylePrefixes.add(color);
         }
 
         int numColors = colorList.size();
         String[] gradientColors = new String[steps];
 
         for (int i = 0; i < steps; i++) {
-            float ratio = (float) i / (steps - 1);
+            float ratio = steps > 1 ? (float) i / (steps - 1) : 0;
             int segment = Math.min(numColors - 2, (int) (ratio * (numColors - 1)));
             float segmentRatio = (ratio * (numColors - 1)) - segment;
 
             Color startColor = colorList.get(segment);
             Color endColor = colorList.get(segment + 1);
 
-            int r = (int) (startColor.getRed() + segmentRatio * (endColor.getRed() - startColor.getRed()));
-            int g = (int) (startColor.getGreen() + segmentRatio * (endColor.getGreen() - startColor.getGreen()));
-            int b = (int) (startColor.getBlue() + segmentRatio * (endColor.getBlue() - startColor.getBlue()));
+            int r = interpolate(startColor.getRed(), endColor.getRed(), segmentRatio);
+            int g = interpolate(startColor.getGreen(), endColor.getGreen(), segmentRatio);
+            int b = interpolate(startColor.getBlue(), endColor.getBlue(), segmentRatio);
 
             StringBuilder formattedColor = new StringBuilder(String.format("#%02X%02X%02X", r, g, b));
-
-            // Append all style prefixes to the color
-            for (String stylePrefix : stylePrefixes) {
-                formattedColor.append(stylePrefix);
-            }
+            stylePrefixes.forEach(formattedColor::append);
 
             gradientColors[i] = formattedColor.toString();
         }
 
         return gradientColors;
+    }
+
+    private static int interpolate(int start, int end, float ratio) {
+        return (int) (start + ratio * (end - start));
     }
 
     public static String centerMessage(String message) {
@@ -407,10 +498,10 @@ public class Formatter {
                 previousCode = true;
             } else if (previousCode) {
                 previousCode = false;
-                isBold = c == 'l';
+                isBold = (c == 'l');
             } else {
                 DefaultFontInfo fontInfo = DefaultFontInfo.getDefaultFontInfo(c);
-                messagePxSize = isBold ? messagePxSize + fontInfo.getBoldLength() : messagePxSize + fontInfo.getLength();
+                messagePxSize += isBold ? fontInfo.getBoldLength() : fontInfo.getLength();
                 messagePxSize++;
             }
         }
@@ -418,20 +509,14 @@ public class Formatter {
         int centerPixels = config.getConfigValue("Center-Pixels");
         int toCompensate = centerPixels - messagePxSize / 2;
         int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
-        int compensated = 0;
 
-        StringBuilder sb = new StringBuilder();
-        while (compensated < toCompensate) {
-            sb.append(" ");
-            compensated += spaceLength;
-        }
-
-        return sb + "§r" + message;
+        int spaces = Math.max(0, toCompensate / spaceLength);
+        return " ".repeat(spaces) + "§r" + message;
     }
 
     public static void sendCenteredMessages(Player player, String[] lines) {
         for (String line : lines) {
-            sendCenteredMessage(player, line);
+            player.sendMessage(centerMessage(line));
         }
     }
 
@@ -442,34 +527,47 @@ public class Formatter {
     public static org.bukkit.Color hexToRGB(String hex) {
         hex = hex.replace("#", "");
 
-        int r = Integer.valueOf(hex.substring(0, 2), 16);
-        int g = Integer.valueOf(hex.substring(2, 4), 16);
-        int b = Integer.valueOf(hex.substring(4, 6), 16);
+        int r = Integer.parseInt(hex.substring(0, 2), 16);
+        int g = Integer.parseInt(hex.substring(2, 4), 16);
+        int b = Integer.parseInt(hex.substring(4, 6), 16);
 
         return org.bukkit.Color.fromRGB(r, g, b);
     }
 
+    private static Map<String, String> createConsoleColorMap() {
+        return Map.ofEntries(
+                Map.entry("§0", "\u001B[30m"),
+                Map.entry("§1", "\u001B[34m"),
+                Map.entry("§2", "\u001B[32m"),
+                Map.entry("§3", "\u001B[36m"),
+                Map.entry("§4", "\u001B[31m"),
+                Map.entry("§5", "\u001B[35m"),
+                Map.entry("§6", "\u001B[33m"),
+                Map.entry("§7", "\u001B[37m"),
+                Map.entry("§8", "\u001B[90m"),
+                Map.entry("§9", "\u001B[94m"),
+                Map.entry("§a", "\u001B[92m"),
+                Map.entry("§b", "\u001B[96m"),
+                Map.entry("§c", "\u001B[91m"),
+                Map.entry("§d", "\u001B[95m"),
+                Map.entry("§e", "\u001B[93m"),
+                Map.entry("§f", "\u001B[97m"),
+                Map.entry("§r", "\u001B[0m"));
+    }
+
     public static String translateForConsole(String message) {
-        String colored = ChatColor.translateAlternateColorCodes('&', message)
-                .replace("§0", "\u001B[30m")
-                .replace("§1", "\u001B[34m")
-                .replace("§2", "\u001B[32m")
-                .replace("§3", "\u001B[36m")
-                .replace("§4", "\u001B[31m")
-                .replace("§5", "\u001B[35m")
-                .replace("§6", "\u001B[33m")
-                .replace("§7", "\u001B[37m")
-                .replace("§8", "\u001B[90m")
-                .replace("§9", "\u001B[94m")
-                .replace("§a", "\u001B[92m")
-                .replace("§b", "\u001B[96m")
-                .replace("§c", "\u001B[91m")
-                .replace("§d", "\u001B[95m")
-                .replace("§e", "\u001B[93m")
-                .replace("§f", "\u001B[97m")
-                .replace("§r", "\u001B[0m");
+        String colored = ChatColor.translateAlternateColorCodes('&', message);
+
+        for (Map.Entry<String, String> entry : CONSOLE_COLOR_MAP.entrySet()) {
+            colored = colored.replace(entry.getKey(), entry.getValue());
+        }
 
         return colored + "\u001B[0m";
+    }
+
+    public static void clearCaches() {
+        FORMAT_CACHE.clear();
+        HEX_COLOR_CACHE.clear();
     }
 
 }
