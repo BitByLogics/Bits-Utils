@@ -88,6 +88,26 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
         return Optional.of(new Location(bukkitWorld, x, y, z));
     }
 
+    public long encode() {
+        long lx = ((long)x & 0x3FFFFFFL);
+        long lz = ((long)z & 0x3FFFFFFL);
+        long ly = ((long)y & 0xFFF);
+
+        return (lx << 38) | (lz << 12) | ly;
+    }
+
+    public static WorldPosition decode(@NonNull String world, long packed) {
+        int x = (int)((packed >> 38) & 0x3FFFFFFL);
+        int z = (int)((packed >> 12) & 0x3FFFFFFL);
+        int y = (int)(packed & 0xFFF);
+
+        if (x >= 0x2000000) x -= 0x4000000;
+        if (z >= 0x2000000) z -= 0x4000000;
+        if (y >= 0x800) y -= 0x1000;
+
+        return new WorldPosition(world, x, y, z);
+    }
+
     @Override
     public @NotNull String toString() {
         return String.format("%s:%s:%s:%s", worldName, x, y, z);

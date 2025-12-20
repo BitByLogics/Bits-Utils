@@ -79,6 +79,20 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
         return result;
     }
 
+    public long encode() {
+        long lx = ((long)x & 0xFFFFFFFFL);
+        long lz = ((long)z & 0xFFFFFFFFL);
+
+        return (lx << 32) | lz;
+    }
+
+    public static ChunkPosition decode(@NonNull String world, long packed) {
+        int x = (int)(packed >> 32);
+        int z = (int)(packed & 0xFFFFFFFFL);
+
+        return new ChunkPosition(world, x, z);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
