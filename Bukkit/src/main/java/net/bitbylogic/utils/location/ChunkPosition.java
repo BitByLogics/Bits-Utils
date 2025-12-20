@@ -80,17 +80,17 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
     }
 
     public long encode() {
-        long lx = ((long)x & 0xFFFFFFFFL);
-        long lz = ((long)z & 0xFFFFFFFFL);
-
-        return (lx << 32) | lz;
+        return LocationUtil.encodeChunk(x, z);
     }
 
     public static ChunkPosition decode(@NonNull String world, long packed) {
-        int x = (int)(packed >> 32);
-        int z = (int)(packed & 0xFFFFFFFFL);
+        Chunk chunk = LocationUtil.decodeChunk(world, packed);
 
-        return new ChunkPosition(world, x, z);
+        if(chunk == null) {
+            return null;
+        }
+
+        return of(chunk);
     }
 
     @Override

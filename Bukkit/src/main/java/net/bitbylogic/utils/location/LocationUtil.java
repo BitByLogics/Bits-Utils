@@ -12,6 +12,52 @@ import java.util.Set;
 
 public class LocationUtil {
 
+    public static long encode(int x, int y, int z) {
+        long lx = ((long)x & 0x3FFFFFFL);
+        long lz = ((long)z & 0x3FFFFFFL);
+        long ly = ((long)y & 0xFFF);
+
+        return (lx << 38) | (lz << 12) | ly;
+    }
+
+    public static Location decode(@NonNull String worldName, long packed) {
+        World world = Bukkit.getWorld(worldName);
+
+        if (world == null) {
+            return null;
+        }
+
+        int x = (int)((packed >> 38) & 0x3FFFFFFL);
+        int z = (int)((packed >> 12) & 0x3FFFFFFL);
+        int y = (int)(packed & 0xFFF);
+
+        if (x >= 0x2000000) x -= 0x4000000;
+        if (z >= 0x2000000) z -= 0x4000000;
+        if (y >= 0x800) y -= 0x1000;
+
+        return new Location(world, x, y, z);
+    }
+
+    public static long encodeChunk(@NonNull int chunkX, int chunkZ) {
+        long lx = ((long)chunkX & 0xFFFFFFFFL);
+        long lz = ((long)chunkZ & 0xFFFFFFFFL);
+
+        return (lx << 32) | lz;
+    }
+
+    public static Chunk decodeChunk(@NonNull String worldName, long packed) {
+        World world = Bukkit.getWorld(worldName);
+
+        if (world == null) {
+            return null;
+        }
+
+        int x = (int)(packed >> 32);
+        int z = (int)(packed & 0xFFFFFFFFL);
+
+        return world.getChunkAt(x, z);
+    }
+
     /**
      * Convert a location to string.
      *
