@@ -92,14 +92,16 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
         return LocationUtil.encode((int) x, (int) y, (int) z);
     }
 
-    public static WorldPosition decode(@NonNull String world, long packed) {
-        Location location = LocationUtil.decode(world, packed);
+    public static WorldPosition decode(@NonNull String worldName, long packed) {
+        int x = (int)((packed >> 38) & 0x3FFFFFFL);
+        int z = (int)((packed >> 12) & 0x3FFFFFFL);
+        int y = (int)(packed & 0xFFF);
 
-        if (location == null) {
-            return null;
-        }
+        if (x >= 0x2000000) x -= 0x4000000;
+        if (z >= 0x2000000) z -= 0x4000000;
+        if (y >= 0x800) y -= 0x1000;
 
-        return ofBlock(location);
+        return new WorldPosition(worldName, x, y, z);
     }
 
     @Override
