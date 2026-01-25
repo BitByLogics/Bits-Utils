@@ -1,5 +1,8 @@
 package net.bitbylogic.utils;
 
+import lombok.NonNull;
+
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -54,6 +57,19 @@ public class StringUtil {
         double numberOfWords = string.split(" ").length;
         double readingTime = (numberOfWords / readingSpeed);
         return (long) (readingTime * 1000);
+    }
+
+    public static String replace(@NonNull String message, Object... replacements) {
+        String modifiedMessage = message;
+
+        for (Object replacement : replacements) {
+            if (modifiedMessage.contains("%s")) {
+                modifiedMessage = modifiedMessage.replaceFirst("%s",
+                        Matcher.quoteReplacement(replacement.toString()));
+            }
+        }
+
+        return modifiedMessage;
     }
 
 }

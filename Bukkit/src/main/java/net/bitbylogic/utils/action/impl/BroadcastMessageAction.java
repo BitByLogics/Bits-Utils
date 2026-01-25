@@ -8,7 +8,7 @@ import net.bitbylogic.utils.action.data.StringActionData;
 import net.bitbylogic.utils.context.BukkitContextKeys;
 import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.context.DefaultContextKeys;
-import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.message.MessageUtil;
 import org.bukkit.Bukkit;
 
 public class BroadcastMessageAction implements Action {
@@ -29,7 +29,7 @@ public class BroadcastMessageAction implements Action {
 
             context.get(BukkitContextKeys.PLAYER).ifPresent(player -> {
                 String personalized = PlaceholderAPI.setPlaceholders(player, message.replace("%player%", player.getName()));
-                Bukkit.broadcastMessage(Formatter.format(personalized));
+                Bukkit.broadcastMessage(MessageUtil.deserializeToSpigot(personalized));
             });
         });
 

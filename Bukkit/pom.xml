@@ -6,7 +6,7 @@
     <parent>
         <groupId>net.bitbylogic</groupId>
         <artifactId>bits-utils</artifactId>
-        <version>2.1.1</version>
+        <version>2.2.0</version>
     </parent>
 
     <artifactId>bits-utils-bukkit</artifactId>
@@ -46,18 +46,39 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Adventure -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>4.26.1</version>
+        </dependency>
+
+        <!-- Adventure Bukkit -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-platform-bukkit</artifactId>
+            <version>4.4.1</version>
+        </dependency>
+
+        <!-- MiniMessage -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>4.26.1</version>
+        </dependency>
+
         <!-- Bit's Utils -->
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-common</artifactId>
-            <version>2.1.1</version>
+            <version>2.2.0</version>
         </dependency>
 
         <!-- Bit's Utils Paper -->
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>bits-utils-paper</artifactId>
-            <version>2.1.1</version>
+            <version>2.2.0</version>
         </dependency>
 
         <!-- PlaceholderAPI -->
