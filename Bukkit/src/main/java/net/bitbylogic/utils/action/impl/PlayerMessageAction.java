@@ -10,7 +10,7 @@ import net.bitbylogic.utils.action.data.StringActionData;
 import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.context.DefaultContextKeys;
 import net.bitbylogic.utils.context.BukkitContextKeys;
-import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.message.MessageUtil;
 import org.bukkit.entity.Player;
 
 @NoArgsConstructor
@@ -39,7 +39,7 @@ public class PlayerMessageAction implements Action {
             return false;
         }
 
-        String finalMessage = Formatter.format(PlaceholderAPI.setPlaceholders(player, message.replace("%player%", player.getName())));
+        String finalMessage = MessageUtil.deserializeToSpigot(PlaceholderAPI.setPlaceholders(player, message.replace("%player%", player.getName())));
         player.sendMessage(finalMessage);
         return true;
     }
