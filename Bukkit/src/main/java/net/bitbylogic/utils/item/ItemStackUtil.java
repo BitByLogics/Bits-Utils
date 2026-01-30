@@ -34,7 +34,7 @@ public class ItemStackUtil {
      * @return New ItemStack instance.
      */
     public static ItemStack getFromConfig(@NonNull ConfigurationSection section, TagResolver.Single... modifiers) {
-        Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section);
+        Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section, modifiers);
 
         if(optionalItem.isEmpty()) {
             return new ItemStack(Material.OAK_LOG);

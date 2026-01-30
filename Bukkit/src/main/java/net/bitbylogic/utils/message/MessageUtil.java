@@ -112,7 +112,15 @@ public class MessageUtil {
     }
 
     public static String deserializeToSpigot(@NotNull String message, TagResolver.Single... placeholders) {
-        return toSpigot(deserialize(message, placeholders));
+        Component component;
+
+        if (message.indexOf('§') != -1) {
+            component = LEGACY_SERIALIZER.deserialize(message);
+        } else {
+            component = deserialize(message, placeholders);
+        }
+
+        return LEGACY_SERIALIZER.serialize(component);
     }
 
     public static String legacyColor(@NonNull String message) {

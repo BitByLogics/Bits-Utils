@@ -8,6 +8,7 @@ import net.bitbylogic.utils.color.ColorUtil;
 import net.bitbylogic.utils.config.ConfigSerializer;
 import net.bitbylogic.utils.message.MessageUtil;
 import net.bitbylogic.utils.server.ServerUtil;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
@@ -41,8 +42,13 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
     @Override
     public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section, TagResolver.Single... placeholders) {
         int amount = section.getInt("Amount", 1);
-        ItemStack stack = new ItemStack(Material.valueOf(MessageUtil.deserializeToSpigot(section.getString("Material", "BARRIER"))), amount);
+        ItemStack stack = new ItemStack(Material.valueOf(MessageUtil.deserializeToSpigot(section.getString("Material", "BARRIER"), placeholders)), amount);
         ItemMeta meta = stack.getItemMeta();
 
         if (meta == null) {
@@ -51,14 +57,14 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         // Define the items name
         if (section.getString("Name") != null) {
-            meta.setDisplayName(MessageUtil.deserializeToSpigot(section.getString("Name")));
+            meta.setDisplayName(MessageUtil.deserializeToSpigot(section.getString("Name"), placeholders));
         }
 
         List<String> lore = Lists.newArrayList();
 
         // Define the items lore
         section.getStringList("Lore").forEach(string ->
-                lore.add(MessageUtil.deserializeToSpigot(string)));
+                lore.add(MessageUtil.deserializeToSpigot(string, placeholders)));
 
         meta.setLore(lore);
 
@@ -129,7 +135,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) meta;
-            skullMeta.setOwner(MessageUtil.deserializeToSpigot(section.getString("Skull-Name", "Notch")));
+            skullMeta.setOwner(MessageUtil.deserializeToSpigot(section.getString("Skull-Name", "Notch"), placeholders));
             meta = skullMeta;
         }
 
