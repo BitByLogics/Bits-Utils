@@ -57,7 +57,7 @@ public class ItemStackUtil {
      * @return ItemStack's Vanilla Name.
      */
     public static String getVanillaName(ItemStack item) {
-        return MessageUtil.legacyColor("&f" + StringUtil.capitalize(item.getType().name().replace("_", " ")));
+        return StringUtil.capitalize(item.getType().name().replace("_", " "));
     }
 
     /**
