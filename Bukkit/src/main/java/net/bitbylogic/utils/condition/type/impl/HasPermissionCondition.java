@@ -5,6 +5,7 @@ import net.bitbylogic.utils.condition.type.SimpleCondition;
 import net.bitbylogic.utils.config.metadata.ConfiguredMetadata;
 import net.bitbylogic.utils.context.BukkitContextKeys;
 import net.bitbylogic.utils.context.Context;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,8 +31,8 @@ public class HasPermissionCondition extends SimpleCondition {
     }
 
     @Override
-    public @NonNull @NotNull String getErrorMessage(@NonNull Context context) {
-        return "";
+    public @NonNull @NotNull Component getErrorMessage(@NonNull Context context) {
+        return Component.empty();
     }
 
 }
