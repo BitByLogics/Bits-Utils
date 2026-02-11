@@ -286,9 +286,11 @@ public class Formatter {
     public static BaseComponent richCommand(String command, String description) {
         BaseComponent component = richFormat(config.getConfigValue("Rich-Format.Text"),
                 new Placeholder("%command%", command));
+
         component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                 new Text(richFormat(config.getConfigValue("Rich-Format.Hover"),
                         new Placeholder("%description%", description)))));
+
         return component;
     }
 
