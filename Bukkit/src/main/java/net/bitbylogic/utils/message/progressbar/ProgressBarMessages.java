@@ -17,8 +17,8 @@ public class ProgressBarMessages extends MessageGroup {
     public void register() {
         SYMBOL = register("Symbol", "|");
 
-        PROGRESS_COLOR = register("Progress-Color", "#00AA00");
-        DEFAULT_COLOR = register("Default-Color", "#555555");
+        PROGRESS_COLOR = register("Progress-Color", "<#00AA00>");
+        DEFAULT_COLOR = register("Default-Color", "<#555555>");
     }
 
 }
