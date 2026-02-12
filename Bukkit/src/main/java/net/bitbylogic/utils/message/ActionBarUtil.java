@@ -29,7 +29,7 @@ public class ActionBarUtil {
             return;
         }
 
-        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, MessageUtil.praiseMD5(MessageUtil.deserialize("&a")));
+        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, MessageUtil.praiseMD5(MessageUtil.deserialize("<white>")));
         LAST_ACTION_BAR.invalidate(player.getUniqueId());
     }
 
