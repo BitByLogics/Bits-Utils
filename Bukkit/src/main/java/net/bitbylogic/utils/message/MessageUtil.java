@@ -116,11 +116,13 @@ public class MessageUtil {
 
         if (message.indexOf('§') != -1) {
             component = LEGACY_SERIALIZER.deserialize(message);
-        } else {
-            component = deserialize(message, placeholders);
+
+            return LEGACY_SERIALIZER.serialize(component);
         }
 
-        return LEGACY_SERIALIZER.serialize(component);
+        component = deserialize(message, placeholders);
+
+        return MINI_MESSAGE.serialize(component);
     }
 
     public static String legacyColor(@NonNull String message) {
