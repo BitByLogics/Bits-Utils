@@ -8,6 +8,7 @@ import net.bitbylogic.utils.hologram.line.HologramItemLine;
 import net.bitbylogic.utils.hologram.line.HologramTextLine;
 import net.bitbylogic.utils.hologram.type.HologramType;
 import net.bitbylogic.utils.message.MessageUtil;
+import net.bitbylogic.utils.server.ServerUtil;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -97,7 +98,11 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
             case TEXT -> {
                 TextDisplay textDisplay = (TextDisplay) display;
 
-                textDisplay.setText(MessageUtil.deserializeToSpigot((String) data));
+                if (ServerUtil.isPaper()) {
+                    PaperHologramHandler.setText(MessageUtil.deserialize((String) data), textDisplay);
+                } else {
+                    textDisplay.setText(MessageUtil.deserializeToSpigot((String) data));
+                }
             }
             case ITEM -> {
                 ItemDisplay itemDisplay = (ItemDisplay) display;
@@ -213,7 +218,12 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
 
                 HologramTextLine textLine = (HologramTextLine) this;
 
-                textDisplay.setText(MessageUtil.deserializeToSpigot(textLine.getData().orElse("")));
+                if (ServerUtil.isPaper()) {
+                    PaperHologramHandler.setText(MessageUtil.deserialize(textLine.getData().orElse("")), textDisplay);
+                } else {
+                    textDisplay.setText(MessageUtil.deserializeToSpigot(textLine.getData().orElse("")));
+                }
+
                 textDisplay.setBackgroundColor(textLine.getBackgroundColor() == null
                         ? textDisplay.getBackgroundColor() : textLine.getBackgroundColor());
                 textDisplay.setTextOpacity(textLine.getOpacity() == -1
