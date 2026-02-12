@@ -111,7 +111,7 @@ public class CooldownUtil {
     }
 
     public static Optional<Cooldown> getCooldown(@NonNull String key, @NonNull UUID identifier) {
-        return getCooldowns(identifier).stream().filter(cd -> cd != null && cd.getCooldownId().equalsIgnoreCase(key)).findFirst();
+        return getCooldowns(identifier).stream().filter(cd -> cd != null && cd.getCooldownId().equalsIgnoreCase(key) && cd.isActive()).findFirst();
     }
 
     public static boolean hasCooldown(@NonNull String key, @NonNull UUID identifier) {

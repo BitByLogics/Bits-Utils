@@ -3,6 +3,7 @@ package net.bitbylogic.utils.condition.type;
 import lombok.NonNull;
 import net.bitbylogic.utils.condition.Condition;
 import net.bitbylogic.utils.context.Context;
+import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
 public class InvertedCondition implements Condition {
@@ -24,8 +25,8 @@ public class InvertedCondition implements Condition {
     }
 
     @Override
-    public @NotNull String getErrorMessage(@NonNull Context context) {
-        return "INVERTED: " + original.getErrorMessage(context);
+    public @NotNull Component getErrorMessage(@NonNull Context context) {
+        return Component.text("INVERTED: ").append(original.getErrorMessage(context));
     }
 
 }

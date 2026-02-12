@@ -1,8 +1,9 @@
 package net.bitbylogic.utils.message.structured;
 
 import lombok.NonNull;
-import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.message.MessageUtil;
 import net.bitbylogic.utils.smallcaps.SmallCapsConverter;
+import net.kyori.adventure.text.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,17 +21,13 @@ public class StructuredMessageBuilder {
 
     private static final int MAX_ENTRIES_PER_PAGE = 10;
 
-    private final Map<Integer, List<String>> pages = new HashMap<>();
+    private final Map<Integer, List<Component>> pages = new HashMap<>();
 
-    private final String header;
+    private final Component header;
     private int depth;
 
     public StructuredMessageBuilder(@NonNull String header) {
-        this.header = header;
-    }
-
-    public StructuredMessageBuilder(@NonNull String headerPrefix, @NonNull String headerMessage) {
-        this.header = Formatter.main(SmallCapsConverter.convert(headerPrefix), SmallCapsConverter.convert(headerMessage));
+        this.header = MessageUtil.deserialize(header);
     }
 
     public StructuredMessageBuilder sectionUp(@NonNull String key) {
@@ -96,19 +93,19 @@ public class StructuredMessageBuilder {
             pages.put(0, new ArrayList<>());
         }
 
-        List<String> lastPage = pages.get(pages.size() - 1);
+        List<Component> lastPage = pages.get(pages.size() - 1);
 
         if(lastPage == null) {
             return this;
         }
 
-        List<String> page = lastPage.size() < MAX_ENTRIES_PER_PAGE ? lastPage : pages.put(pages.size(), new ArrayList<>());
+        List<Component> page = lastPage.size() < MAX_ENTRIES_PER_PAGE ? lastPage : pages.put(pages.size(), new ArrayList<>());
 
         if(page == null) {
             return this;
         }
 
-        page.add(Formatter.format(message));
+        page.add(MessageUtil.deserialize(message));
         return this;
     }
 

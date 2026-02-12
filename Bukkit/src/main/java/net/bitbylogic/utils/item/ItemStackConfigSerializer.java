@@ -4,9 +4,11 @@ import com.google.common.collect.Lists;
 import lombok.NonNull;
 import net.bitbylogic.utils.EnumUtil;
 import net.bitbylogic.utils.NumberUtil;
+import net.bitbylogic.utils.color.ColorUtil;
 import net.bitbylogic.utils.config.ConfigSerializer;
-import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.message.MessageUtil;
 import net.bitbylogic.utils.server.ServerUtil;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
@@ -40,8 +42,13 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
     @Override
     public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section, TagResolver.Single... placeholders) {
         int amount = section.getInt("Amount", 1);
-        ItemStack stack = new ItemStack(Material.valueOf(Formatter.format(section.getString("Material", "BARRIER"))), amount);
+        ItemStack stack = new ItemStack(Material.valueOf(MessageUtil.deserializeToSpigot(section.getString("Material", "BARRIER"), placeholders)), amount);
         ItemMeta meta = stack.getItemMeta();
 
         if (meta == null) {
@@ -50,14 +57,14 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         // Define the items name
         if (section.getString("Name") != null) {
-            meta.setDisplayName(Formatter.format(section.getString("Name")));
+            meta.setDisplayName(MessageUtil.deserializeToSpigot(section.getString("Name"), placeholders));
         }
 
         List<String> lore = Lists.newArrayList();
 
         // Define the items lore
         section.getStringList("Lore").forEach(string ->
-                lore.add(Formatter.format(string)));
+                lore.add(MessageUtil.deserializeToSpigot(string, placeholders)));
 
         meta.setLore(lore);
 
@@ -84,7 +91,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         // If leather armor, apply dye color if defined
         if (stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
             LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) meta;
-            java.awt.Color color = ChatColor.of(section.getString("Dye-Color", Formatter.colorToChatColor(Bukkit.getServer().getItemFactory().getDefaultLeatherColor()).toString())).getColor();
+            java.awt.Color color = ChatColor.of(section.getString("Dye-Color", ColorUtil.colorToChatColor(Bukkit.getServer().getItemFactory().getDefaultLeatherColor()).toString())).getColor();
             leatherArmorMeta.setColor(Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()));
             meta = leatherArmorMeta;
         }
@@ -97,7 +104,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
                 boolean vanilla = potionSection.getBoolean("Vanilla", false);
                 PotionMeta potionMeta = (PotionMeta) meta;
 
-                if(potionSection.isSet("Color") && Formatter.getConfig().getHexPattern().pattern().matches(potionSection.getString("Color"))) {
+                if(potionSection.isSet("Color") && ColorUtil.containsHexColor(potionSection.getString("Color"))) {
                     String hexColor = potionSection.getString("Color");
 
                     int r = Integer.parseInt(hexColor.substring(0, 2), 16);
@@ -128,7 +135,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) meta;
-            skullMeta.setOwner(Formatter.format(section.getString("Skull-Name", "Notch")));
+            skullMeta.setOwner(MessageUtil.deserializeToSpigot(section.getString("Skull-Name", "Notch"), placeholders));
             meta = skullMeta;
         }
 
@@ -306,12 +313,12 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         }
 
         if (meta.hasDisplayName()) {
-            section.set("Name", Formatter.reverseColors(meta.getDisplayName()));
+            section.set("Name", MessageUtil.serializeColored(meta.getDisplayName()));
         }
 
         if (meta.hasLore() && meta.getLore() != null) {
             List<String> plainLore = new ArrayList<>();
-            meta.getLore().forEach(loreLine -> plainLore.add(Formatter.reverseColors(loreLine)));
+            meta.getLore().forEach(loreLine -> plainLore.add(MessageUtil.serializeColored(loreLine)));
             section.set("Lore", plainLore);
         }
 
@@ -349,7 +356,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         if (meta instanceof LeatherArmorMeta leatherArmorMeta
                 && !leatherArmorMeta.getColor().equals(Bukkit.getServer().getItemFactory().getDefaultLeatherColor())) {
-            section.set("Dye-Color", Formatter.colorToChatColor(leatherArmorMeta.getColor()));
+            section.set("Dye-Color", ColorUtil.colorToChatColor(leatherArmorMeta.getColor()));
         }
 
         if (meta instanceof PotionMeta potionMeta

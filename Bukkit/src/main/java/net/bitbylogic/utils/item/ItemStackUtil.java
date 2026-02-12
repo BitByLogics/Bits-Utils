@@ -2,9 +2,9 @@ package net.bitbylogic.utils.item;
 
 import com.google.common.collect.Lists;
 import lombok.NonNull;
-import net.bitbylogic.utils.StringModifier;
 import net.bitbylogic.utils.StringUtil;
-import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.message.MessageUtil;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.CreatureSpawner;
@@ -33,8 +33,8 @@ public class ItemStackUtil {
      * @param modifiers Modifiers to replace in the name/lore.
      * @return New ItemStack instance.
      */
-    public static ItemStack getFromConfig(@NonNull ConfigurationSection section, StringModifier... modifiers) {
-        Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section);
+    public static ItemStack getFromConfig(@NonNull ConfigurationSection section, TagResolver.Single... modifiers) {
+        Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section, modifiers);
 
         if(optionalItem.isEmpty()) {
             return new ItemStack(Material.OAK_LOG);
@@ -57,7 +57,7 @@ public class ItemStackUtil {
      * @return ItemStack's Vanilla Name.
      */
     public static String getVanillaName(ItemStack item) {
-        return Formatter.format("&f" + StringUtil.capitalize(item.getType().name().replace("_", " ")));
+        return StringUtil.capitalize(item.getType().name().replace("_", " "));
     }
 
     /**
@@ -67,19 +67,19 @@ public class ItemStackUtil {
      * @param item      The ItemStack to update.
      * @param modifiers The placeholders to replace.
      */
-    public static void updateItem(ItemStack item, StringModifier... modifiers) {
+    public static void updateItem(ItemStack item, TagResolver.Single... modifiers) {
         if (item == null || !item.hasItemMeta() || item.getItemMeta() == null) {
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Formatter.format(meta.getDisplayName(), modifiers));
+        meta.setDisplayName(MessageUtil.deserializeToSpigot(meta.getDisplayName(), modifiers));
 
         if (meta.hasLore() && meta.getLore() != null) {
             List<String> lore = meta.getLore();
             List<String> updatedLore = Lists.newArrayList();
 
-            lore.forEach(string -> updatedLore.add(Formatter.format(string, modifiers)));
+            lore.forEach(string -> updatedLore.add(MessageUtil.deserializeToSpigot(string, modifiers)));
             meta.setLore(updatedLore);
         }
 
@@ -269,7 +269,7 @@ public class ItemStackUtil {
         ItemMeta meta = item.getItemMeta();
 
         if (name != null) {
-            meta.setDisplayName(Formatter.format(name));
+            meta.setDisplayName(MessageUtil.deserializeToSpigot(name));
         }
 
         meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "bits_spawner"), PersistentDataType.STRING, entityType.name());

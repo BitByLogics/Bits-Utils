@@ -1,9 +1,9 @@
 package net.bitbylogic.utils.message.config;
 
 import lombok.Getter;
-import net.bitbylogic.utils.Placeholder;
-import net.bitbylogic.utils.StringModifier;
-import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.message.MessageUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -17,7 +17,6 @@ import java.util.List;
 public class MessageProvider {
 
     private final HashMap<String, Object> messages = new HashMap<>();
-    private final List<StringModifier> placeholders = new ArrayList<>();
 
     public MessageProvider(ConfigurationSection config) {
         config.getKeys(true).stream().filter(key -> !(config.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, config.get(key)));
@@ -35,10 +34,6 @@ public class MessageProvider {
                 memorySection = messageSection;
             }
         }
-
-        for (String key : memorySection.getKeys(true)) {
-
-        }
     }
 
     public void reload(ConfigurationSection section) {
@@ -46,56 +41,27 @@ public class MessageProvider {
         section.getKeys(true).stream().filter(key -> !(section.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, section.get(key)));
     }
 
-    @Deprecated
-    public void registerPlaceholder(Placeholder placeholder) {
-        placeholders.add(placeholder);
-    }
-
-    public void registerModifier(StringModifier placeholder) {
-        placeholders.add(placeholder);
-    }
-
-    public String getMessage(String key, Placeholder... externalPlaceholders) {
-        return getMessage(key, true, externalPlaceholders);
-    }
-
-    public String getMessage(String key, boolean applyPlaceholders, Placeholder... externalPlaceholders) {
+    public Component getMessage(String key, TagResolver.Single... externalPlaceholders) {
         String rawMessage = getRawMessage(key);
 
         if (rawMessage == null) {
             return null;
         }
 
-        rawMessage = Formatter.format(rawMessage, externalPlaceholders);
-
-        if (applyPlaceholders) {
-            rawMessage = Formatter.format(rawMessage, placeholders.toArray(new StringModifier[]{}));
-        }
-
-        return rawMessage;
+        return MessageUtil.deserialize(rawMessage, externalPlaceholders);
     }
 
-    public List<String> getMessageList(String key, Placeholder... externalPlaceholders) {
-        return getMessageList(key, true, externalPlaceholders);
-    }
-
-    public List<String> getMessageList(String key, boolean applyPlaceholders, Placeholder... externalPlaceholders) {
+    public List<Component> getMessageList(String key, TagResolver.Single... externalPlaceholders) {
         List<String> rawList = getRawMessageList(key);
 
         if (rawList == null) {
             return null;
         }
 
-        List<String> formattedMessages = new ArrayList<>();
-        rawList.forEach(string -> formattedMessages.add(Formatter.format(string, externalPlaceholders)));
+        List<Component> formattedMessages = new ArrayList<>();
+        rawList.forEach(string -> formattedMessages.add(MessageUtil.deserialize(string, externalPlaceholders)));
 
-        List<String> finalMessages = new ArrayList<>();
-
-        if (applyPlaceholders) {
-            formattedMessages.forEach(string -> finalMessages.add(Formatter.format(string, placeholders.toArray(new StringModifier[]{}))));
-        }
-
-        return finalMessages;
+        return formattedMessages;
     }
 
     public List<String> getRawMessageList(String key) {
@@ -120,10 +86,6 @@ public class MessageProvider {
         }
 
         return (String) messages.get(key);
-    }
-
-    public String applyPlaceholders(String text) {
-        return Formatter.format(text, placeholders.toArray(new StringModifier[]{}));
     }
 
 }

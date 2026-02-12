@@ -1,7 +1,7 @@
 package net.bitbylogic.utils.item;
 
 import lombok.NonNull;
-import net.bitbylogic.utils.message.format.Formatter;
+import net.bitbylogic.utils.message.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -36,7 +36,7 @@ public class ItemBuilder {
 
     public ItemBuilder name(String name) {
         ItemMeta stackMeta = item.getItemMeta();
-        stackMeta.setDisplayName(Formatter.format(name));
+        stackMeta.setDisplayName(MessageUtil.deserializeToSpigot(name));
         item.setItemMeta(stackMeta);
         return this;
     }
@@ -54,7 +54,7 @@ public class ItemBuilder {
         }
 
         for (String s : lore) {
-            newLore.add(Formatter.format(s));
+            newLore.add(MessageUtil.deserializeToSpigot(s));
         }
 
         meta.setLore(newLore);
