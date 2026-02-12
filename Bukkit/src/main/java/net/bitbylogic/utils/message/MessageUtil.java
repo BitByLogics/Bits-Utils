@@ -116,21 +116,23 @@ public class MessageUtil {
 
         if (message.indexOf('§') != -1) {
             component = LEGACY_SERIALIZER.deserialize(message);
-
-            return LEGACY_SERIALIZER.serialize(component);
+        } else {
+            component = deserialize(message, placeholders);
         }
 
-        component = deserialize(message, placeholders);
-
-        return MINI_MESSAGE.serialize(component);
+        return LEGACY_SERIALIZER.serialize(component);
     }
 
     public static String legacyColor(@NonNull String message) {
         return ChatColor.translateAlternateColorCodes('&', message);
     }
 
-    public static String toSpigot(@NonNull Component component) {
-        return LEGACY_SERIALIZER.serialize(component);
+    public static Component fromLegacy(@NonNull String message) {
+        return LEGACY_SERIALIZER.deserialize(message);
+    }
+
+    public static String toSpigotFromLegacy(@NonNull String message) {
+        return LEGACY_SERIALIZER.serialize(fromLegacy(message));
     }
 
     public static BaseComponent praiseMD5(@NonNull Component component) {
