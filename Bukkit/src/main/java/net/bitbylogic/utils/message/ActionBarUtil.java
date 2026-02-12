@@ -15,7 +15,7 @@ public class ActionBarUtil {
     private static final Cache<UUID, String> LAST_ACTION_BAR = CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.SECONDS).build();
 
     public static void sendActionBar(@NonNull Player player, @NonNull String id, @NonNull TextComponent message) {
-        MessageUtil.send(player, message);
+        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, MessageUtil.praiseMD5(message));
         LAST_ACTION_BAR.put(player.getUniqueId(), id);
     }
 
