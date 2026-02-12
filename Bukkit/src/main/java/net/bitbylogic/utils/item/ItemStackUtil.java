@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import lombok.NonNull;
 import net.bitbylogic.utils.StringUtil;
 import net.bitbylogic.utils.message.MessageUtil;
+import net.bitbylogic.utils.server.ServerUtil;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -73,14 +75,27 @@ public class ItemStackUtil {
         }
 
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(MessageUtil.deserializeToSpigot(meta.getDisplayName(), modifiers));
+
+        if (ServerUtil.isPaper()) {
+            PaperItemStackUtil.updateName(meta, component -> MessageUtil.deserialize(MessageUtil.serialize(component), modifiers));
+        } else {
+            meta.setDisplayName(MessageUtil.deserializeToSpigot(meta.getDisplayName(), modifiers));
+        }
 
         if (meta.hasLore() && meta.getLore() != null) {
-            List<String> lore = meta.getLore();
-            List<String> updatedLore = Lists.newArrayList();
+            if (ServerUtil.isPaper()) {
+                PaperItemStackUtil.updateLore(meta, components -> {
+                    List<Component> updated = new ArrayList<>(components.size());
+                    components.forEach(component -> updated.add(MessageUtil.deserialize(MessageUtil.serialize(component), modifiers)));
+                    return updated;
+                });
+            } else {
+                List<String> lore = meta.getLore();
+                List<String> updatedLore = Lists.newArrayList();
 
-            lore.forEach(string -> updatedLore.add(MessageUtil.deserializeToSpigot(string, modifiers)));
-            meta.setLore(updatedLore);
+                lore.forEach(string -> updatedLore.add(MessageUtil.deserializeToSpigot(string, modifiers)));
+                meta.setLore(updatedLore);
+            }
         }
 
         item.setItemMeta(meta);

@@ -1,6 +1,5 @@
 package net.bitbylogic.utils.item;
 
-import com.google.common.collect.Lists;
 import lombok.NonNull;
 import net.bitbylogic.utils.EnumUtil;
 import net.bitbylogic.utils.NumberUtil;
@@ -8,6 +7,7 @@ import net.bitbylogic.utils.color.ColorUtil;
 import net.bitbylogic.utils.config.ConfigSerializer;
 import net.bitbylogic.utils.message.MessageUtil;
 import net.bitbylogic.utils.server.ServerUtil;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.*;
@@ -57,16 +57,27 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         // Define the items name
         if (section.getString("Name") != null) {
-            meta.setDisplayName(MessageUtil.deserializeToSpigot(section.getString("Name"), placeholders));
+            if (ServerUtil.isPaper()) {
+                PaperItemStackUtil.setName(meta, MessageUtil.deserialize(section.getString("Name"), placeholders));
+            } else {
+                meta.setDisplayName(MessageUtil.deserializeToSpigot(section.getString("Name"), placeholders));
+            }
         }
 
-        List<String> lore = Lists.newArrayList();
+        if (ServerUtil.isPaper()) {
+            List<Component> lore = new ArrayList<>();
 
-        // Define the items lore
-        section.getStringList("Lore").forEach(string ->
-                lore.add(MessageUtil.deserializeToSpigot(string, placeholders)));
+            section.getStringList("Lore").forEach(string -> lore.add(MessageUtil.deserialize(string, placeholders)));
 
-        meta.setLore(lore);
+            PaperItemStackUtil.setLore(meta, lore);
+        } else {
+            List<String> lore = new ArrayList<>();
+
+            section.getStringList("Lore").forEach(string ->
+                    lore.add(MessageUtil.deserializeToSpigot(string, placeholders)));
+
+            meta.setLore(lore);
+        }
 
         meta.setMaxStackSize(section.getInt("Max-Stack-Size", meta.hasMaxStackSize() ? meta.getMaxStackSize() : 64));
 

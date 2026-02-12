@@ -3,7 +3,6 @@ package net.bitbylogic.utils.message;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.bitbylogic.utils.message.tag.CenterModifyingTag;
 import net.bitbylogic.utils.message.tag.SmallCapsModifyingTag;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -12,6 +11,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
@@ -27,7 +27,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MessageUtil {
 
+    private static final int CENTER_PIXELS = 154;
+
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.builder().hexColors().build();
+    private static final PlainTextComponentSerializer PLAIN_SERIALIZER = PlainTextComponentSerializer.builder().build();
 
     private static final TagResolver SMALL_CAPS = TagResolver.resolver(
             "smallcaps",
@@ -39,15 +42,10 @@ public class MessageUtil {
             (aq, ctx) -> new SmallCapsModifyingTag()
     );
 
-    private static final TagResolver CENTER = TagResolver.resolver(
-            "center",
-            (aq, ctx) -> new CenterModifyingTag()
-    );
-
     private static final MiniMessage MINI_MESSAGE = MiniMessage.builder()
             .tags(
                     TagResolver.builder()
-                            .resolvers(StandardTags.defaults(), SMALL_CAPS, ROMAN, CENTER)
+                            .resolvers(StandardTags.defaults(), SMALL_CAPS, ROMAN)
                             .build()
             ).build();
 
@@ -95,6 +93,11 @@ public class MessageUtil {
         List<TagResolver.Single> allPlaceholders = new ArrayList<>(GLOBAL_PLACEHOLDERS);
         allPlaceholders.addAll(List.of(placeholders));
 
+        if (message.contains("<center>")) {
+            message = message.replaceFirst("<center>", "");
+            message = center(message, calculatePadding(PLAIN_SERIALIZER.serialize(MINI_MESSAGE.deserialize(message))));
+        }
+
         if (format == MessageFormat.MINI_MESSAGE) {
             return MINI_MESSAGE.deserialize(message, allPlaceholders.toArray(new TagResolver.Single[0]));
         }
@@ -112,6 +115,11 @@ public class MessageUtil {
     }
 
     public static String deserializeToSpigot(@NotNull String message, TagResolver.Single... placeholders) {
+        if (message.contains("<center>")) {
+            message = message.replaceFirst("<center>", "");
+            message = center(message, calculatePadding(PLAIN_SERIALIZER.serialize(MINI_MESSAGE.deserialize(message))));
+        }
+
         Component component;
 
         if (message.indexOf('§') != -1) {
@@ -137,6 +145,25 @@ public class MessageUtil {
 
     public static BaseComponent praiseMD5(@NonNull Component component) {
         return TextComponent.fromLegacy(LEGACY_SERIALIZER.serialize(component));
+    }
+
+    private static String center(@NotNull String string, int padding) {
+        return " ".repeat(Math.max(0, padding)) + string;
+    }
+
+    private static int calculatePadding(@NotNull String content) {
+        int messagePxSize = 0;
+
+        for (char c : content.toCharArray()) {
+            messagePxSize += DefaultFontInfo.getDefaultFontInfo(c).getLength() + 1;
+        }
+
+        int halvedMessageSize = messagePxSize / 2;
+        int toCompensate = CENTER_PIXELS - halvedMessageSize;
+
+        int spacePx = DefaultFontInfo.getDefaultFontInfo(' ').getLength();
+
+        return toCompensate / (spacePx + 1);
     }
 
 }
