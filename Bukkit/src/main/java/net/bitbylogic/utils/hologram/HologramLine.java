@@ -9,6 +9,8 @@ import net.bitbylogic.utils.hologram.line.HologramTextLine;
 import net.bitbylogic.utils.hologram.type.HologramType;
 import net.bitbylogic.utils.message.MessageUtil;
 import net.bitbylogic.utils.server.ServerUtil;
+import net.kyori.adventure.text.minimessage.internal.parser.ParsingExceptionImpl;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -99,7 +101,12 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
                 TextDisplay textDisplay = (TextDisplay) display;
 
                 if (ServerUtil.isPaper()) {
-                    PaperHologramHandler.setText(MessageUtil.deserialize((String) data), textDisplay);
+                    try {
+                        PaperHologramHandler.setText(MessageUtil.deserialize((String) data), textDisplay);
+                    } catch (ParsingExceptionImpl exception) {
+                        Bukkit.getLogger().warning("Failed to deserialize hologram text: " + data);
+                        exception.printStackTrace();
+                    }
                 } else {
                     textDisplay.setText(MessageUtil.deserializeToSpigot((String) data));
                 }
@@ -219,7 +226,12 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
                 HologramTextLine textLine = (HologramTextLine) this;
 
                 if (ServerUtil.isPaper()) {
-                    PaperHologramHandler.setText(MessageUtil.deserialize(textLine.getData().orElse("")), textDisplay);
+                    try {
+                        PaperHologramHandler.setText(MessageUtil.deserialize(textLine.getData().orElse("")), textDisplay);
+                    } catch (ParsingExceptionImpl exception) {
+                        Bukkit.getLogger().warning("Failed to deserialize hologram text: " + textLine.getData().orElse(""));
+                        exception.printStackTrace();
+                    }
                 } else {
                     textDisplay.setText(MessageUtil.deserializeToSpigot(textLine.getData().orElse("")));
                 }
