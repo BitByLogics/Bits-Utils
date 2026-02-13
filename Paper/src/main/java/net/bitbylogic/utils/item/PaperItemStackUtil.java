@@ -51,13 +51,13 @@ public class PaperItemStackUtil {
         meta.lore(lore);
     }
 
-    public static void setLore(@NotNull ItemMeta meta, @NotNull List<Component> lore) {
+    public static void updateLore(@NotNull ItemMeta meta, @NotNull List<Component> lore) {
         lore.replaceAll(component -> component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
 
         meta.lore(lore);
     }
 
-    public static void setLore(@NotNull ItemMeta meta, @NotNull Map<String, Component> placeholders) {
+    public static void updateLore(@NotNull ItemMeta meta, @NotNull Map<String, Component> placeholders) {
         List<Component> lore = meta.lore();
 
         if (lore == null) {

@@ -126,7 +126,7 @@ public class ItemStackUtil {
 
         if (meta.hasLore() && meta.getLore() != null) {
             if (ServerUtil.isPaper()) {
-                PaperItemStackUtil.updateName(meta, placeholders);
+                PaperItemStackUtil.updateLore(meta, placeholders);
             } else {
                 List<String> lore = meta.getLore();
                 List<String> updatedLore = Lists.newArrayList();
