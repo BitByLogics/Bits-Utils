@@ -69,7 +69,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
             section.getStringList("Lore").forEach(string -> lore.add(MessageUtil.deserialize(string, placeholders)));
 
-            PaperItemStackUtil.updateLore(meta, lore);
+            PaperItemStackUtil.setLore(meta, lore);
         } else {
             List<String> lore = new ArrayList<>();
 
