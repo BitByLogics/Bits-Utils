@@ -20,6 +20,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -94,6 +95,50 @@ public class ItemStackUtil {
                 List<String> updatedLore = Lists.newArrayList();
 
                 lore.forEach(string -> updatedLore.add(MessageUtil.deserializeToSpigot(string, modifiers)));
+                meta.setLore(updatedLore);
+            }
+        }
+
+        item.setItemMeta(meta);
+    }
+
+    public static void updateItem(@NotNull ItemStack item, @NotNull Map<String, Component> placeholders) {
+        if (!item.hasItemMeta() || item.getItemMeta() == null) {
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+
+        if (ServerUtil.isPaper()) {
+            PaperItemStackUtil.updateName(meta, placeholders);
+        } else {
+            Component displayName = MessageUtil.deserialize(meta.getDisplayName());
+
+            for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
+                displayName = displayName.replaceText(b -> b
+                        .matchLiteral(entry.getKey())
+                        .replacement(entry.getValue())
+                );
+            }
+
+            meta.setDisplayName(MessageUtil.deserializeToSpigot(MessageUtil.serialize(displayName)));
+        }
+
+        if (meta.hasLore() && meta.getLore() != null) {
+            if (ServerUtil.isPaper()) {
+                PaperItemStackUtil.updateName(meta, placeholders);
+            } else {
+                List<String> lore = meta.getLore();
+                List<String> updatedLore = Lists.newArrayList();
+
+                lore.forEach(string -> {
+                    for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
+                        string = string.replace(entry.getKey(), MessageUtil.serialize(entry.getValue()));
+                    }
+
+                    updatedLore.add(MessageUtil.deserializeToSpigot(string));
+                });
+
                 meta.setLore(updatedLore);
             }
         }
