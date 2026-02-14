@@ -32,11 +32,7 @@ public class ProgressBar {
         result = result.append(progressColor);
 
         for (int i = 0; i < length; i++) {
-            if (i == progress) {
-                result = result.append(defaultColor);
-            }
-
-            result = result.append(symbol);
+            result = result.append(symbol).style(i <= progress ? progressColor.style() : defaultColor.style());
         }
 
         if (suffix != null && !suffix.isEmpty()) {
