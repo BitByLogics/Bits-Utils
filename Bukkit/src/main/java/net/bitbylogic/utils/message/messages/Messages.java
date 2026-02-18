@@ -76,6 +76,12 @@ public abstract class Messages {
 
                     if (valuesToSave.size() == 1) {
                         config.set(key.getPath(), valuesToSave.getFirst());
+
+                        try {
+                            config.save(localeConfig);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         continue;
                     }
 
