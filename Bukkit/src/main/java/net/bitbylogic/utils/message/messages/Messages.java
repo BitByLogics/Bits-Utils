@@ -56,6 +56,15 @@ public abstract class Messages {
         for (MessageKey key : REGISTRY.values()) {
             for (Locale locale : SUPPORTED_LOCALES) {
                 File localeConfig = new File(messagesFolder, locale.toLanguageTag() + ".yml");
+
+                if (!localeConfig.exists()) {
+                    try {
+                        localeConfig.createNewFile();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
                 FileConfiguration config = YamlConfiguration.loadConfiguration(localeConfig);
 
                 if(!config.isSet(key.getPath())) {
