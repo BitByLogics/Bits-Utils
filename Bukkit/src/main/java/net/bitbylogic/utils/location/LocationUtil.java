@@ -243,7 +243,7 @@ public class LocationUtil {
         blockLocation.setX(location.getBlockX());
         blockLocation.setY(location.getBlockY());
         blockLocation.setZ(location.getBlockZ());
-        return location;
+        return blockLocation;
     }
 
     public static double distance(@NonNull Location location, @NonNull Location other) {
