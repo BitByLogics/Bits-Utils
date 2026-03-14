@@ -95,7 +95,7 @@ public class MessageUtil {
 
         if (message.contains("<center>")) {
             message = message.replaceFirst("<center>", "");
-            message = center(message, calculatePadding(PLAIN_SERIALIZER.serialize(MINI_MESSAGE.deserialize(message))));
+            message = center(message, calculatePadding(PLAIN_SERIALIZER.serialize(MINI_MESSAGE.deserialize(message, allPlaceholders.toArray(new TagResolver.Single[0])))));
         }
 
         if (format == MessageFormat.MINI_MESSAGE) {
