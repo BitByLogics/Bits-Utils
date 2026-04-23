@@ -42,13 +42,6 @@ public class MessageUtil {
             (aq, ctx) -> new SmallCapsModifyingTag()
     );
 
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.builder()
-            .tags(
-                    TagResolver.builder()
-                            .resolvers(StandardTags.defaults(), SMALL_CAPS, ROMAN)
-                            .build()
-            ).build();
-
     @Getter
     private static final List<TagResolver.Single> GLOBAL_PLACEHOLDERS = new ArrayList<>();
 
@@ -58,9 +51,16 @@ public class MessageUtil {
     @Setter
     private static MessageFormat format = MessageFormat.MINI_MESSAGE;
 
+    private static MiniMessage MINI_MESSAGE;
     private static BukkitAudiences AUDIENCES;
 
-    public static void init(@NonNull JavaPlugin plugin) {
+    public static void init(@NonNull JavaPlugin plugin, TagResolver... additionalResolvers) {
+        List<TagResolver> resolvers = new ArrayList<>(Arrays.asList(additionalResolvers));
+        resolvers.add(StandardTags.defaults());
+        resolvers.add(SMALL_CAPS);
+        resolvers.add(ROMAN);
+
+        MINI_MESSAGE = MiniMessage.builder().tags(TagResolver.builder().resolvers(resolvers).build()).build();
         AUDIENCES = BukkitAudiences.create(plugin);
     }
 
