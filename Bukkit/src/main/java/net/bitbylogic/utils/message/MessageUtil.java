@@ -76,6 +76,14 @@ public class MessageUtil {
         asAudience(sender).sendMessage(component);
     }
 
+    public static void sendAll(@NonNull CommandSender sender, @NonNull Component... components) {
+        Audience audience = asAudience(sender);
+
+        for (Component component : components) {
+            audience.sendMessage(component);
+        }
+    }
+
     public static void registerGlobalPlaceholder(TagResolver.Single... placeholders) {
         GLOBAL_PLACEHOLDERS.addAll(Arrays.asList(placeholders));
     }
