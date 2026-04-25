@@ -1,31 +1,65 @@
 package net.bitbylogic.utils;
 
+import lombok.Getter;
 import net.bitbylogic.utils.config.ConfigSerializer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+@Getter
 public class Registry<K, V> {
 
     private final ConcurrentHashMap<K, V> registry = new ConcurrentHashMap<>();
 
     private final @Nullable ConfigSerializer<V> serializer;
 
+    private final @Nullable File configFile;
+    private final @Nullable YamlConfiguration config;
+    private final @Nullable String configPath;
+
     public Registry() {
         this.serializer = null;
+        this.configFile = null;
+        this.config = null;
+        this.configPath = null;
     }
 
-    public Registry(@NotNull ConfigSerializer<V> serializer) {
+    public Registry(@NotNull File configFile, @NotNull String configPath, @NotNull ConfigSerializer<V> serializer) {
         this.serializer = serializer;
+
+        this.configFile = configFile;
+        this.config = YamlConfiguration.loadConfiguration(configFile);
+        this.configPath = configPath;
     }
 
-    public void loadFromConfig(@NotNull YamlConfiguration config, @NotNull String path) {
-        ConfigurationSection section = config.getConfigurationSection(path);
+    public void reloadConfig() {
+        if (configFile == null || config == null) {
+            return;
+        }
+
+        try {
+            this.config.load(configFile);
+        } catch (IOException | InvalidConfigurationException e) {
+            Logger.getGlobal().log(Level.WARNING, "Failed to reload config");
+        }
+    }
+
+    public void loadFromConfig() {
+        if (config == null || configPath == null) {
+            return;
+        }
+
+        ConfigurationSection section = config.getConfigurationSection(configPath);
 
         if(serializer == null || section == null) {
             return;
