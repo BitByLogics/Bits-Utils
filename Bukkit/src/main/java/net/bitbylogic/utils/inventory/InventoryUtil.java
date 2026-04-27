@@ -1,5 +1,8 @@
 package net.bitbylogic.utils.inventory;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import net.bitbylogic.utils.item.ItemStackUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -8,17 +11,18 @@ import org.bukkit.event.inventory.InventoryEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.lang.reflect.Type;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryUtil {
+
+    private static final Gson GSON = new GsonBuilder().create();
 
     public static Inventory getViewInventory(InventoryEvent event, String methodName) {
         try {
@@ -472,6 +476,59 @@ public class InventoryUtil {
         }
 
         return toRemove == 0;
+    }
+
+    public static String serializeInventory(@NotNull PlayerInventory inventory) {
+        Map<String, Object> data = new HashMap<>();
+
+        data.put("contents", serializeItems(inventory.getContents()));
+        data.put("armor", serializeItems(inventory.getArmorContents()));
+        data.put("offhand", serializeItem(inventory.getItemInOffHand()));
+
+        return GSON.toJson(data);
+    }
+
+    private static List<Map<String, Object>> serializeItems(@Nullable ItemStack[] items) {
+        List<Map<String, Object>> list = new ArrayList<>();
+
+        for (ItemStack item : items) {
+            list.add(item == null ? null : item.serialize());
+        }
+
+        return list;
+    }
+
+    private static Map<String, Object> serializeItem(@Nullable ItemStack item) {
+        return item == null ? null : item.serialize();
+    }
+
+    public static void deserializeInventory(@NotNull PlayerInventory inventory, @NotNull String json) {
+        Type type = new TypeToken<Map<String, Object>>() {}.getType();
+        Map<String, Object> data = GSON.fromJson(json, type);
+
+        inventory.setContents(deserializeItems((List<Map<String, Object>>) data.get("contents")));
+        inventory.setArmorContents(deserializeItems((List<Map<String, Object>>) data.get("armor")));
+
+        Map<String, Object> offhandMap = (Map<String, Object>) data.get("offhand");
+        inventory.setItemInOffHand(deserializeItem(offhandMap));
+    }
+
+    private static ItemStack[] deserializeItems(List<Map<String, Object>> list) {
+        ItemStack[] items = new ItemStack[list.size()];
+
+        for (int i = 0; i < list.size(); i++) {
+            items[i] = deserializeItem(list.get(i));
+        }
+
+        return items;
+    }
+
+    private static ItemStack deserializeItem(@Nullable Map<String, Object> map) {
+        if (map == null) {
+            return null;
+        }
+
+        return ItemStack.deserialize(map);
     }
 
 }
