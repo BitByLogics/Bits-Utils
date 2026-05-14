@@ -1,22 +1,16 @@
 package net.bitbylogic.utils.message;
 
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import net.bitbylogic.utils.message.tag.SmallCapsModifyingTag;
-import net.kyori.adventure.audience.Audience;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -25,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+// TODO: Add caching, improve this overall
 public class MessageUtil {
 
     private static final int CENTER_PIXELS = 154;
@@ -52,35 +47,23 @@ public class MessageUtil {
     private static MessageFormat format = MessageFormat.MINI_MESSAGE;
 
     private static MiniMessage MINI_MESSAGE;
-    private static BukkitAudiences AUDIENCES;
 
-    public static void init(@NonNull JavaPlugin plugin, TagResolver... additionalResolvers) {
+    public static void init(@NotNull TagResolver... additionalResolvers) {
         List<TagResolver> resolvers = new ArrayList<>(Arrays.asList(additionalResolvers));
         resolvers.add(StandardTags.defaults());
         resolvers.add(SMALL_CAPS);
         resolvers.add(ROMAN);
 
         MINI_MESSAGE = MiniMessage.builder().tags(TagResolver.builder().resolvers(resolvers).build()).build();
-        AUDIENCES = BukkitAudiences.create(plugin);
     }
 
-    public static void cleanup() {
-        AUDIENCES.close();
+    public static void send(@NotNull CommandSender sender, @NotNull Component component) {
+        sender.sendMessage(component);
     }
 
-    public static Audience asAudience(@NonNull CommandSender sender) {
-        return AUDIENCES.sender(sender);
-    }
-
-    public static void send(@NonNull CommandSender sender, @NonNull Component component) {
-        asAudience(sender).sendMessage(component);
-    }
-
-    public static void sendAll(@NonNull CommandSender sender, @NonNull Component... components) {
-        Audience audience = asAudience(sender);
-
+    public static void sendAll(@NotNull CommandSender sender, @NotNull Component... components) {
         for (Component component : components) {
-            audience.sendMessage(component);
+            sender.sendMessage(component);
         }
     }
 
@@ -122,37 +105,16 @@ public class MessageUtil {
         return component;
     }
 
-    public static String deserializeToSpigot(@NotNull String message, TagResolver.Single... placeholders) {
-        if (message.contains("<center>")) {
-            message = message.replaceFirst("<center>", "");
-            message = center(message, calculatePadding(PLAIN_SERIALIZER.serialize(MINI_MESSAGE.deserialize(message))));
-        }
-
-        Component component;
-
-        if (message.indexOf('§') != -1) {
-            component = LEGACY_SERIALIZER.deserialize(message);
-        } else {
-            component = deserialize(message, placeholders);
-        }
-
-        return LEGACY_SERIALIZER.serialize(component);
-    }
-
-    public static String legacyColor(@NonNull String message) {
+    public static String legacyColor(@NotNull String message) {
         return ChatColor.translateAlternateColorCodes('&', message);
     }
 
-    public static Component fromLegacy(@NonNull String message) {
+    public static Component fromLegacy(@NotNull String message) {
         return LEGACY_SERIALIZER.deserialize(message);
     }
 
-    public static String toSpigotFromLegacy(@NonNull String message) {
+    public static String toSpigotFromLegacy(@NotNull String message) {
         return LEGACY_SERIALIZER.serialize(fromLegacy(message));
-    }
-
-    public static BaseComponent praiseMD5(@NonNull Component component) {
-        return TextComponent.fromLegacy(LEGACY_SERIALIZER.serialize(component));
     }
 
     private static String center(@NotNull String string, int padding) {

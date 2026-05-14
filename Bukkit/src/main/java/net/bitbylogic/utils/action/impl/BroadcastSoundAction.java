@@ -37,7 +37,6 @@ public class BroadcastSoundAction implements Action {
             volume = metaData.getData().getValueAsOrDefault("Volume", DEFAULT_VOLUME);
             pitch = metaData.getData().getValueAsOrDefault("Pitch", DEFAULT_PITCH);
         } else if (actionData instanceof StringActionData stringData) {
-            // Format: SOUNDNAME:VOLUME:PITCH
             String[] parts = stringData.getData().split(":");
             if (parts.length >= 1) soundName = parts[0].toUpperCase();
             if (parts.length >= 2) volume = parseFloat(parts[1]);

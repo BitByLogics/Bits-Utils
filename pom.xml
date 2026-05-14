@@ -14,7 +14,6 @@
     <modules>
         <module>Common</module>
         <module>Bukkit</module>
-        <module>Paper</module>
     </modules>
 
     <properties>
