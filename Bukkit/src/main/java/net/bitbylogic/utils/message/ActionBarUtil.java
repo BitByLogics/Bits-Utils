@@ -3,11 +3,8 @@ package net.bitbylogic.utils.message;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.NonNull;
-import net.bitbylogic.utils.player.PaperPlayerUtil;
-import net.bitbylogic.utils.server.ServerUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
-import net.md_5.bungee.api.ChatMessageType;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -18,21 +15,12 @@ public class ActionBarUtil {
     private static final Cache<UUID, String> LAST_ACTION_BAR = CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.SECONDS).build();
 
     public static void sendActionBar(@NonNull Player player, @NonNull String id, @NonNull TextComponent message) {
-        if(ServerUtil.isPaper()) {
-            PaperPlayerUtil.sendActionBar(player, message);
-        } else {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, MessageUtil.praiseMD5(message));
-        }
-
+        player.sendActionBar(message);
         LAST_ACTION_BAR.put(player.getUniqueId(), id);
     }
 
     public static void sendActionBar(@NonNull Player player, @NonNull String id, @NonNull String message) {
-        if (ServerUtil.isPaper()) {
-            PaperPlayerUtil.sendActionBar(player, MessageUtil.deserialize(message));
-        } else {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, MessageUtil.praiseMD5(MessageUtil.deserialize(message)));
-        }
+        player.sendActionBar(MessageUtil.deserialize(message));
 
         LAST_ACTION_BAR.put(player.getUniqueId(), id);
     }
@@ -42,12 +30,7 @@ public class ActionBarUtil {
             return;
         }
 
-        if (ServerUtil.isPaper()) {
-            PaperPlayerUtil.sendActionBar(player, Component.text(""));
-        } else {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, MessageUtil.praiseMD5(MessageUtil.deserialize("<green>")));
-        }
-
+        player.sendActionBar(Component.text(""));
         LAST_ACTION_BAR.invalidate(player.getUniqueId());
     }
 

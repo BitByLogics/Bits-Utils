@@ -1,14 +1,13 @@
 package net.bitbylogic.utils.item;
 
 import com.google.common.collect.Lists;
-import lombok.NonNull;
-import net.bitbylogic.utils.StringUtil;
 import net.bitbylogic.utils.message.MessageUtil;
-import net.bitbylogic.utils.server.ServerUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
@@ -19,27 +18,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Function;
 
 public class ItemStackUtil {
 
     private static final ItemStackConfigSerializer CONFIG_PARSER = new ItemStackConfigSerializer();
-
-    /**
-     * Create an ItemStack object from a configuration
-     * section.
-     *
-     * @param section   The configuration section.
-     * @param modifiers Modifiers to replace in the name/lore.
-     * @return New ItemStack instance.
-     */
-    public static ItemStack getFromConfig(@NonNull ConfigurationSection section, TagResolver.Single... modifiers) {
+    
+    public static ItemStack getFromConfig(@NotNull ConfigurationSection section, TagResolver.Single... modifiers) {
         Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section, modifiers);
 
-        if(optionalItem.isEmpty()) {
+        if (optionalItem.isEmpty()) {
             return new ItemStack(Material.OAK_LOG);
         }
 
@@ -49,54 +41,29 @@ public class ItemStackUtil {
         return item;
     }
 
-    public static void saveToConfig(@NonNull ConfigurationSection section, @NonNull ItemStack item) {
+    public static void saveToConfig(@NotNull ConfigurationSection section, @NotNull ItemStack item) {
         CONFIG_PARSER.serialize(section, item);
     }
 
-    /**
-     * Get an ItemStack's vanilla name.
-     *
-     * @param item The ItemStack whose vanilla name to retrieve.
-     * @return ItemStack's Vanilla Name.
-     */
-    public static String getVanillaName(ItemStack item) {
-        return StringUtil.capitalize(item.getType().name().replace("_", " "));
+    public static Component getTranslatedName(@NotNull Material material) {
+        return Component.translatable(material.translationKey());
     }
 
-    /**
-     * Update an ItemStack's name & lore with color
-     * codes & the provided placeholders.
-     *
-     * @param item      The ItemStack to update.
-     * @param modifiers The placeholders to replace.
-     */
-    public static void updateItem(ItemStack item, TagResolver.Single... modifiers) {
-        if (item == null || !item.hasItemMeta() || item.getItemMeta() == null) {
+    public static void updateItem(@NotNull ItemStack item, TagResolver.Single... modifiers) {
+        if (!item.hasItemMeta() || item.getItemMeta() == null) {
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
 
-        if (ServerUtil.isPaper()) {
-            PaperItemStackUtil.updateName(meta, component -> MessageUtil.deserialize(MessageUtil.serialize(component), modifiers));
-        } else {
-            meta.setDisplayName(MessageUtil.deserializeToSpigot(meta.getDisplayName(), modifiers));
-        }
+        setName(meta, component -> MessageUtil.deserialize(MessageUtil.serialize(component), modifiers));
 
         if (meta.hasLore() && meta.getLore() != null) {
-            if (ServerUtil.isPaper()) {
-                PaperItemStackUtil.updateLore(meta, components -> {
-                    List<Component> updated = new ArrayList<>(components.size());
-                    components.forEach(component -> updated.add(MessageUtil.deserialize(MessageUtil.serialize(component), modifiers)));
-                    return updated;
-                });
-            } else {
-                List<String> lore = meta.getLore();
-                List<String> updatedLore = Lists.newArrayList();
-
-                lore.forEach(string -> updatedLore.add(MessageUtil.deserializeToSpigot(string, modifiers)));
-                meta.setLore(updatedLore);
-            }
+            updateLore(meta, components -> {
+                List<Component> updated = new ArrayList<>(components.size());
+                components.forEach(component -> updated.add(MessageUtil.deserialize(MessageUtil.serialize(component), modifiers)));
+                return updated;
+            });
         }
 
         item.setItemMeta(meta);
@@ -109,86 +76,102 @@ public class ItemStackUtil {
 
         ItemMeta meta = item.getItemMeta();
 
-        if (ServerUtil.isPaper()) {
-            PaperItemStackUtil.updateName(meta, placeholders);
-        } else {
-            Component displayName = MessageUtil.deserialize(meta.getDisplayName());
-
-            for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
-                displayName = displayName.replaceText(b -> b
-                        .matchLiteral(entry.getKey())
-                        .replacement(entry.getValue())
-                );
-            }
-
-            meta.setDisplayName(MessageUtil.deserializeToSpigot(MessageUtil.serialize(displayName)));
-        }
+        updateName(meta, placeholders);
 
         if (meta.hasLore() && meta.getLore() != null) {
-            if (ServerUtil.isPaper()) {
-                PaperItemStackUtil.updateLore(meta, placeholders);
-            } else {
-                List<String> lore = meta.getLore();
-                List<String> updatedLore = Lists.newArrayList();
+            List<Component> lore = meta.lore();
 
-                lore.forEach(string -> {
-                    for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
-                        string = string.replace(entry.getKey(), MessageUtil.serialize(entry.getValue()));
-                    }
-
-                    updatedLore.add(MessageUtil.deserializeToSpigot(string));
-                });
-
-                meta.setLore(updatedLore);
+            for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
+                lore.replaceAll(component -> component.replaceText(b -> b.matchLiteral(entry.getKey()).replacement(entry.getValue())).compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
             }
+
+            meta.lore(lore);
         }
 
         item.setItemMeta(meta);
     }
 
-    /**
-     * Merge ItemStack's lore into a main
-     * ItemStack's lore.
-     *
-     * @param main        The main ItemStack.
-     * @param otherStacks The other ItemStacks.
-     */
+    public static void setName(@NotNull ItemMeta meta, @NotNull Function<Component, Component> componentUpdater) {
+        if (!meta.hasDisplayName()) {
+            return;
+        }
+
+        meta.displayName(componentUpdater.apply(meta.displayName()).compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+    }
+
+    public static void updateName(@NotNull ItemMeta meta, @NotNull Map<String, Component> placeholders) {
+        Component displayName = meta.displayName();
+
+        if (displayName == null) {
+            return;
+        }
+
+        for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
+            displayName = displayName.replaceText(b -> b
+                    .matchLiteral(entry.getKey())
+                    .replacement(entry.getValue())
+            );
+        }
+
+        meta.displayName(displayName.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+    }
+
+    public static void setLore(@NotNull ItemMeta meta, @NotNull List<Component> lore) {
+        lore.replaceAll(component -> component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+
+        meta.lore(lore);
+    }
+
+    public static void updateLore(@NotNull ItemMeta meta, @NotNull Map<String, Component> placeholders) {
+        List<Component> lore = meta.lore();
+
+        if (lore == null) {
+            return;
+        }
+
+        for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
+            lore.replaceAll(component -> component.replaceText(b -> b.matchLiteral(entry.getKey()).replacement(entry.getValue())).compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+        }
+
+        meta.lore(lore);
+    }
+
+    public static void updateLore(@NotNull ItemMeta meta, @NotNull Function<List<Component>, List<Component>> componentUpdater) {
+        if (!meta.hasLore()) {
+            return;
+        }
+
+        List<Component> lore = componentUpdater.apply(meta.lore());
+        lore.replaceAll(component -> component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+
+        meta.lore(lore);
+    }
+
     public static void mergeLore(ItemStack main, ItemStack... otherStacks) {
         if (main.getItemMeta() == null) {
             return;
         }
 
         ItemMeta meta = main.getItemMeta();
-        List<String> mainLore = meta.hasLore() ? meta.getLore() : Lists.newArrayList();
+        List<Component> mainLore = meta.hasLore() ? meta.lore() : Lists.newArrayList();
 
         for (ItemStack otherItem : otherStacks) {
-            if (otherItem.getItemMeta() == null || otherItem.getItemMeta().getLore() == null) {
+            if (otherItem.getItemMeta() == null || otherItem.getItemMeta().lore() == null) {
                 continue;
             }
 
-            if (!otherItem.getItemMeta().hasLore()) {
-                continue;
-            }
-
-            mainLore.addAll(otherItem.getItemMeta().getLore());
+            mainLore.addAll(otherItem.getItemMeta().lore());
         }
 
-        meta.setLore(mainLore);
+        meta.lore(mainLore);
         main.setItemMeta(meta);
     }
 
-    /**
-     * Merge all ItemStack lore into
-     * a single list.
-     *
-     * @param items The ItemStacks.
-     * @return A compiled lore list.
-     */
-    public static List<String> getMergedLore(ItemStack... items) {
-        List<String> lore = Lists.newArrayList();
+    public static List<Component> getMergedLore(ItemStack... items) {
+        List<Component> lore = Lists.newArrayList();
 
         for (ItemStack item : items) {
-            if (item.getItemMeta() == null || item.getItemMeta().getLore() == null) {
+            if (item.getItemMeta() == null || item.getItemMeta().lore() == null) {
                 continue;
             }
 
@@ -196,22 +179,12 @@ public class ItemStackUtil {
                 continue;
             }
 
-            lore.addAll(item.getItemMeta().getLore());
+            lore.addAll(item.getItemMeta().lore());
         }
 
         return lore;
     }
 
-    /**
-     * Check whether two ItemStacks are similar.
-     *
-     * @param item         ItemStack to compare.
-     * @param otherItem    The ItemStack to compare it to.
-     * @param compareFlags Whether to compare the ItemStack's flags.
-     * @param compareName  Whether to compare the ItemStack's names.
-     * @param compareLore  Whether to compare the ItemStack's lore.
-     * @return Whether the ItemStacks are similar.
-     */
     public static boolean isSimilar(ItemStack item, ItemStack otherItem, boolean compareFlags, boolean compareName, boolean compareLore) {
         if (item == null || otherItem == null) return false;
         if (item.getType() != otherItem.getType()) return false;
@@ -249,13 +222,6 @@ public class ItemStackUtil {
         return true;
     }
 
-    /**
-     * Check whether two ItemStack's flags match.
-     *
-     * @param item      ItemStack to compare.
-     * @param otherItem The ItemStack to compare it to.
-     * @return Whether the flags match.
-     */
     public static boolean flagsMatch(ItemStack item, ItemStack otherItem) {
         if (item.getItemMeta() == null && otherItem.getItemMeta() == null) {
             return true;
@@ -324,44 +290,44 @@ public class ItemStackUtil {
         return ((CreatureSpawner) meta.getBlockState()).getSpawnedType() != ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType();
     }
 
-    public static ItemStack getSpawner(JavaPlugin plugin, EntityType entityType, String name) {
+    public static ItemStack getSpawner(@NotNull EntityType entityType, @Nullable String name) {
         ItemStack item = new ItemStack(Material.SPAWNER);
         ItemMeta meta = item.getItemMeta();
 
         if (name != null) {
-            meta.setDisplayName(MessageUtil.deserializeToSpigot(name));
+            meta.displayName(MessageUtil.deserialize(name));
         }
 
-        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "bits_spawner"), PersistentDataType.STRING, entityType.name());
+        meta.getPersistentDataContainer().set(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING, entityType.name());
 
         item.setItemMeta(meta);
         return item;
     }
 
-    public static ItemStack setSpawner(JavaPlugin plugin, ItemStack item, EntityType entityType) {
+    public static ItemStack setSpawner(@NotNull ItemStack item, @NotNull EntityType entityType) {
         ItemMeta meta = item.getItemMeta();
-        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "bits_spawner"), PersistentDataType.STRING, entityType.name());
+        meta.getPersistentDataContainer().set(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING, entityType.name());
 
         item.setItemMeta(meta);
         return item;
     }
 
-    public static boolean isSpawner(JavaPlugin plugin, ItemStack item) {
-        return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(plugin, "bits_spawner"), PersistentDataType.STRING);
+    public static boolean isSpawner(@NotNull ItemStack item) {
+        return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING);
     }
 
-    public static EntityType getSpawnerEntity(JavaPlugin plugin, ItemStack item) {
-        if (!isSpawner(plugin, item)) {
+    public static EntityType getSpawnerEntity(@NotNull ItemStack item) {
+        if (!isSpawner(item)) {
             return null;
         }
 
-        return EntityType.valueOf(item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin, "bits_spawner"), PersistentDataType.STRING));
+        return EntityType.valueOf(item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING));
     }
 
-    public static <P, C> void addPersistentData(@NonNull ItemStack item, @NonNull NamespacedKey key, @NonNull PersistentDataType<P, C> dataType, C value) {
+    public static <P, C> void addPersistentData(@NotNull ItemStack item, @NotNull NamespacedKey key, @NotNull PersistentDataType<P, C> dataType, C value) {
         ItemMeta meta = item.getItemMeta();
 
-        if(meta == null) {
+        if (meta == null) {
             return;
         }
 
@@ -373,20 +339,20 @@ public class ItemStackUtil {
         return itemStack.getItemMeta().getPersistentDataContainer().getKeys().stream().anyMatch(pKey -> pKey.getKey().equalsIgnoreCase(key));
     }
 
-    public static boolean hasPersistentData(@NonNull ItemStack item, @NonNull NamespacedKey key) {
+    public static boolean hasPersistentData(@NotNull ItemStack item, @NotNull NamespacedKey key) {
         ItemMeta meta = item.getItemMeta();
 
-        if(meta == null) {
+        if (meta == null) {
             return false;
         }
 
         return meta.getPersistentDataContainer().has(key);
     }
 
-    public static <P, C> Optional<C> getPersistentData(@NonNull ItemStack item, @NonNull NamespacedKey key, @NonNull PersistentDataType<P, C> dataType) {
+    public static <P, C> Optional<C> getPersistentData(@NotNull ItemStack item, @NotNull NamespacedKey key, @NotNull PersistentDataType<P, C> dataType) {
         ItemMeta meta = item.getItemMeta();
 
-        if(meta == null || !hasPersistentData(item, key)) {
+        if (meta == null || !hasPersistentData(item, key)) {
             return Optional.empty();
         }
 
@@ -398,7 +364,8 @@ public class ItemStackUtil {
         return dataContainer.getKeys().stream().filter(pKey -> dataContainer.has(pKey, type)).anyMatch(pKey -> dataContainer.get(pKey, type) == value);
     }
 
-    public static void setSkullOwner(ItemStack stack, String owner) {
+    @Deprecated
+    public static void setSkullOwner(@NotNull ItemStack stack, @NotNull String owner) {
         if (stack.getType() != Material.PLAYER_HEAD) {
             return;
         }
@@ -408,24 +375,8 @@ public class ItemStackUtil {
         stack.setItemMeta(skullMeta);
     }
 
-    public static boolean isSword(@NonNull ItemStack item) {
-        return item.getType().name().endsWith("_SWORD");
-    }
-
-    public static boolean isAxe(@NonNull ItemStack item) {
-        return item.getType().name().endsWith("_AXE");
-    }
-
-    public static boolean isPickaxe(@NonNull ItemStack item) {
-        return item.getType().name().endsWith("_PICKAXE");
-    }
-
-    public static boolean isHoe(@NonNull ItemStack item) {
-        return item.getType().name().endsWith("_HOE");
-    }
-
-    public static boolean isShovel(@NonNull ItemStack item) {
-        return item.getType().name().endsWith("_SHOVEL");
+    public static boolean isTagged(@NotNull ItemStack itemStack, @NotNull Tag<Material> tag) {
+        return tag.isTagged(itemStack.getType());
     }
 
 }

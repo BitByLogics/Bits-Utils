@@ -1,13 +1,15 @@
 package net.bitbylogic.utils.item;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.Consumable;
 import lombok.NonNull;
 import net.bitbylogic.utils.EnumUtil;
 import net.bitbylogic.utils.NumberUtil;
 import net.bitbylogic.utils.color.ColorUtil;
 import net.bitbylogic.utils.config.ConfigSerializer;
 import net.bitbylogic.utils.message.MessageUtil;
-import net.bitbylogic.utils.server.ServerUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.*;
@@ -23,7 +25,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.inventory.meta.components.EquippableComponent;
 import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.inventory.meta.components.ToolComponent;
-import org.bukkit.inventory.meta.components.consumable.ConsumableComponent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -48,7 +49,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
     @Override
     public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section, TagResolver.Single... placeholders) {
         int amount = section.getInt("Amount", 1);
-        ItemStack stack = new ItemStack(Material.valueOf(MessageUtil.deserializeToSpigot(section.getString("Material", "BARRIER"), placeholders)), amount);
+        ItemStack stack = new ItemStack(Material.valueOf(section.getString("Material", "BARRIER")), amount);
         ItemMeta meta = stack.getItemMeta();
 
         if (meta == null) {
@@ -57,27 +58,16 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         // Define the items name
         if (section.getString("Name") != null) {
-            if (ServerUtil.isPaper()) {
-                PaperItemStackUtil.setName(meta, MessageUtil.deserialize(section.getString("Name"), placeholders));
-            } else {
-                meta.setDisplayName(MessageUtil.deserializeToSpigot(section.getString("Name"), placeholders));
-            }
+            meta.displayName(MessageUtil.deserialize(section.getString("Name"), placeholders).compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
         }
 
-        if (ServerUtil.isPaper()) {
-            List<Component> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
 
-            section.getStringList("Lore").forEach(string -> lore.add(MessageUtil.deserialize(string, placeholders)));
+        section.getStringList("Lore").forEach(string -> lore.add(MessageUtil.deserialize(string, placeholders)));
 
-            PaperItemStackUtil.setLore(meta, lore);
-        } else {
-            List<String> lore = new ArrayList<>();
+        lore.replaceAll(component -> component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
 
-            section.getStringList("Lore").forEach(string ->
-                    lore.add(MessageUtil.deserializeToSpigot(string, placeholders)));
-
-            meta.setLore(lore);
-        }
+        meta.lore(lore);
 
         meta.setMaxStackSize(section.getInt("Max-Stack-Size", meta.hasMaxStackSize() ? meta.getMaxStackSize() : 64));
 
@@ -146,7 +136,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) meta;
-            skullMeta.setOwner(MessageUtil.deserializeToSpigot(section.getString("Skull-Name", "Notch"), placeholders));
+            skullMeta.setOwner(section.getString("Skull-Name", "Notch"));
             meta = skullMeta;
         }
 
@@ -293,20 +283,13 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         ConfigurationSection consumableSection = section.getConfigurationSection("Consumable-Options");
 
         if(consumableSection != null) {
-            if(ServerUtil.isPaper()) {
-                PaperConsumableProvider.provide(stack, consumableSection);
-            } else {
-                ConsumableComponent consumableComponent = meta.getConsumable();
+            Consumable consumable = Consumable.consumable()
+                    .hasConsumeParticles(section.getBoolean("Particles", true))
+                    .consumeSeconds(section.getInt("Consume-Seconds", 3))
+                    .sound(Sound.valueOf(section.getString("Sound", "ENTITY_GENERIC_EAT")).getKey())
+                    .build();
 
-                consumableComponent.setConsumeSeconds(consumableSection.getInt("Consume-Seconds", 3));
-                consumableComponent.setConsumeParticles(consumableSection.getBoolean("Particles", true));
-
-                if(consumableSection.isSet("Sound")) {
-                    consumableComponent.setSound(Sound.valueOf(consumableSection.getString("Sound")));
-                }
-
-                meta.setConsumable(consumableComponent);
-            }
+            stack.setData(DataComponentTypes.CONSUMABLE, consumable);
         }
 
         return Optional.of(stack);

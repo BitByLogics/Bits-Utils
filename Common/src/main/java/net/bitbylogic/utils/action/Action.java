@@ -9,6 +9,8 @@ public interface Action {
 
     boolean execute(@NonNull Context context);
 
-    boolean canExecute(@NonNull Context context);
+    default boolean canExecute(@NonNull Context context) {
+        return true;
+    }
 
 }

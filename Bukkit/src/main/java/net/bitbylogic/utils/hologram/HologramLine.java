@@ -8,9 +8,6 @@ import net.bitbylogic.utils.hologram.line.HologramItemLine;
 import net.bitbylogic.utils.hologram.line.HologramTextLine;
 import net.bitbylogic.utils.hologram.type.HologramType;
 import net.bitbylogic.utils.message.MessageUtil;
-import net.bitbylogic.utils.server.ServerUtil;
-import net.kyori.adventure.text.minimessage.internal.parser.ParsingExceptionImpl;
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -100,16 +97,7 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
             case TEXT -> {
                 TextDisplay textDisplay = (TextDisplay) display;
 
-                if (ServerUtil.isPaper()) {
-                    try {
-                        PaperHologramHandler.setText(MessageUtil.deserialize((String) data), textDisplay);
-                    } catch (ParsingExceptionImpl exception) {
-                        Bukkit.getLogger().warning("Failed to deserialize hologram text: " + data);
-                        exception.printStackTrace();
-                    }
-                } else {
-                    textDisplay.setText(MessageUtil.deserializeToSpigot((String) data));
-                }
+                textDisplay.text(MessageUtil.deserialize((String) data));
             }
             case ITEM -> {
                 ItemDisplay itemDisplay = (ItemDisplay) display;
@@ -225,16 +213,7 @@ public abstract class HologramLine<SELF extends HologramLine<SELF, T>, T> {
 
                 HologramTextLine textLine = (HologramTextLine) this;
 
-                if (ServerUtil.isPaper()) {
-                    try {
-                        PaperHologramHandler.setText(MessageUtil.deserialize(textLine.getData().orElse("")), textDisplay);
-                    } catch (ParsingExceptionImpl exception) {
-                        Bukkit.getLogger().warning("Failed to deserialize hologram text: " + textLine.getData().orElse(""));
-                        exception.printStackTrace();
-                    }
-                } else {
-                    textDisplay.setText(MessageUtil.deserializeToSpigot(textLine.getData().orElse("")));
-                }
+                textDisplay.text(MessageUtil.deserialize(textLine.getData().orElse("")));
 
                 textDisplay.setBackgroundColor(textLine.getBackgroundColor() == null
                         ? textDisplay.getBackgroundColor() : textLine.getBackgroundColor());

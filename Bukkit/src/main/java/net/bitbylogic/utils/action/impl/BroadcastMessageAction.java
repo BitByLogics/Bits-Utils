@@ -29,15 +29,11 @@ public class BroadcastMessageAction implements Action {
 
             context.get(BukkitContextKeys.PLAYER).ifPresent(player -> {
                 String personalized = PlaceholderAPI.setPlaceholders(player, message.replace("%player%", player.getName()));
-                Bukkit.broadcastMessage(MessageUtil.deserializeToSpigot(personalized));
+                Bukkit.broadcast(MessageUtil.deserialize(personalized));
             });
         });
 
         return context.get(DefaultContextKeys.ACTION_DATA).isPresent();
     }
 
-    @Override
-    public boolean canExecute(@NonNull Context context) {
-        return true;
-    }
 }
