@@ -98,7 +98,7 @@ public class MessageKey {
 
         Locale locale = context.getOrDefault(DefaultContextKeys.LOCALE, Locale.ENGLISH);
 
-        send(MessageUtil.asAudience(player), locale, placeholders);
+        send(player, locale, placeholders);
     }
 
     public void send(@NotNull Audience audience, TagResolver.Single... placeholders) {
