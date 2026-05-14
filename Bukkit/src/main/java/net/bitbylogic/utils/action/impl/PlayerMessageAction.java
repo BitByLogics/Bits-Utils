@@ -39,8 +39,7 @@ public class PlayerMessageAction implements Action {
             return false;
         }
 
-        String finalMessage = MessageUtil.deserializeToSpigot(PlaceholderAPI.setPlaceholders(player, message.replace("%player%", player.getName())));
-        player.sendMessage(finalMessage);
+        player.sendMessage(MessageUtil.deserialize(PlaceholderAPI.setPlaceholders(player, message.replace("%player%", player.getName()))));
         return true;
     }
 
