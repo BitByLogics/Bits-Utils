@@ -58,18 +58,18 @@ public class BukkitActionParser extends ActionParser {
         return actions;
     }
 
-    public static Optional<ParsedAction> parseAction(@Nullable ConfigurationSection conditionSection) {
-        if(conditionSection == null) {
+    public static Optional<ParsedAction> parseAction(@Nullable ConfigurationSection actionSection) {
+        if(actionSection == null) {
             return Optional.empty();
         }
 
-        String id = conditionSection.getString("Condition-ID");
+        String id = actionSection.getString("Action-ID");
 
         if(id == null) {
             return Optional.empty();
         }
 
-        ConfigurationSection metadataSection = conditionSection.getConfigurationSection("Metadata");
+        ConfigurationSection metadataSection = actionSection.getConfigurationSection("Metadata");
 
         ConfiguredMetadata metadata = new ConfiguredMetadata(metadataSection);
 

@@ -9,7 +9,6 @@ public class TimeConverter {
 
     private static final Pattern TIME_PATTERN = Pattern.compile("(?i)(\\d+mh|\\d+[smhdwyf])");
     private static final Pattern NUMBER_PATTERN = Pattern.compile("(\\d+)");
-    private static final Pattern LETTER_PATTERN = Pattern.compile("[A-Za-z]");
 
     /**
      * Check if a string is a valid time string.
@@ -128,15 +127,20 @@ public class TimeConverter {
         long time = 0;
 
         for (String arg : args) {
-            if (arg.matches("((\\d+)[A-Za-z])")) {
-                Matcher numberMatcher = NUMBER_PATTERN.matcher(arg);
-                numberMatcher.find();
-                Matcher letterMatcher = LETTER_PATTERN.matcher(arg);
-                letterMatcher.find();
-                long tempTime = Long.valueOf(numberMatcher.group(0));
-                TimeAbbreviation abbreviation = getAbbreviation(letterMatcher.group(0));
-                time += abbreviation.getTime(tempTime);
+            if (!TIME_PATTERN.matcher(arg).matches()) {
+                continue;
             }
+
+            Matcher numberMatcher = NUMBER_PATTERN.matcher(arg);
+            numberMatcher.find();
+            long tempTime = Long.parseLong(numberMatcher.group(0));
+            TimeAbbreviation abbreviation = getAbbreviation(arg.substring(numberMatcher.end()));
+
+            if (abbreviation == null) {
+                continue;
+            }
+
+            time += abbreviation.getTime(tempTime);
         }
 
         return time;

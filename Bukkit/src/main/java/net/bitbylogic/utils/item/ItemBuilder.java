@@ -74,10 +74,15 @@ public class ItemBuilder {
     }
 
     public ItemBuilder lore(@NotNull List<String> lore) {
-        for (String part : lore) {
-            lore(part);
+        ItemMeta meta = item.getItemMeta();
+        List<Component> newLore = new ArrayList<>();
+
+        for (String loreLine : lore) {
+            newLore.add(MessageUtil.deserialize(loreLine));
         }
 
+        meta.lore(newLore);
+        this.item.setItemMeta(meta);
         return this;
     }
 

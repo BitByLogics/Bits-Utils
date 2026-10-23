@@ -27,6 +27,7 @@ import java.util.function.Function;
 public class ItemStackUtil {
 
     private static final ItemStackConfigSerializer CONFIG_PARSER = new ItemStackConfigSerializer();
+    private static final NamespacedKey SPAWNER_KEY = new NamespacedKey("bitsutils", "bits_spawner");
     
     public static ItemStack getFromConfig(@NotNull ConfigurationSection section, TagResolver.Single... modifiers) {
         Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section, modifiers);
@@ -192,14 +193,8 @@ public class ItemStackUtil {
         ItemMeta meta = item.getItemMeta();
         ItemMeta otherMeta = otherItem.getItemMeta();
 
-        // Compare flags
-        if (compareFlags) {
-            Set<ItemFlag> flags = (meta == null ? Collections.emptySet() : meta.getItemFlags());
-            Set<ItemFlag> otherFlags = (otherMeta == null ? Collections.emptySet() : otherMeta.getItemFlags());
-
-            if (!flags.equals(otherFlags)) {
-                return false;
-            }
+        if (compareFlags && !flagsMatch(item, otherItem)) {
+            return false;
         }
 
         // Compare display name
@@ -212,23 +207,19 @@ public class ItemStackUtil {
             }
         }
 
-        // Compare lore
         if (compareLore) {
-            List<String> lore = (meta != null && meta.hasLore()) ? meta.getLore() : null;
-            List<String> otherLore = (otherMeta != null && otherMeta.hasLore()) ? otherMeta.getLore() : null;
-            return Objects.equals(lore, otherLore);
+            return loreMatches(item, otherItem);
         }
 
         return true;
     }
 
     public static boolean flagsMatch(ItemStack item, ItemStack otherItem) {
-        if (item.getItemMeta() == null && otherItem.getItemMeta() == null) {
-            return true;
-        }
+        ItemMeta meta = item.getItemMeta();
+        ItemMeta otherMeta = otherItem.getItemMeta();
 
-        Set<ItemFlag> itemFlags = item.getItemMeta().getItemFlags();
-        Set<ItemFlag> otherItemFlags = otherItem.getItemMeta().getItemFlags();
+        Set<ItemFlag> itemFlags = meta == null ? Collections.emptySet() : meta.getItemFlags();
+        Set<ItemFlag> otherItemFlags = otherMeta == null ? Collections.emptySet() : otherMeta.getItemFlags();
 
         return itemFlags.equals(otherItemFlags);
     }
@@ -287,7 +278,7 @@ public class ItemStackUtil {
             return false;
         }
 
-        return ((CreatureSpawner) meta.getBlockState()).getSpawnedType() != ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType();
+        return ((CreatureSpawner) meta.getBlockState()).getSpawnedType() == ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType();
     }
 
     public static ItemStack getSpawner(@NotNull EntityType entityType, @Nullable String name) {
@@ -298,7 +289,7 @@ public class ItemStackUtil {
             meta.displayName(MessageUtil.deserialize(name));
         }
 
-        meta.getPersistentDataContainer().set(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING, entityType.name());
+        meta.getPersistentDataContainer().set(SPAWNER_KEY, PersistentDataType.STRING, entityType.name());
 
         item.setItemMeta(meta);
         return item;
@@ -306,14 +297,14 @@ public class ItemStackUtil {
 
     public static ItemStack setSpawner(@NotNull ItemStack item, @NotNull EntityType entityType) {
         ItemMeta meta = item.getItemMeta();
-        meta.getPersistentDataContainer().set(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING, entityType.name());
+        meta.getPersistentDataContainer().set(SPAWNER_KEY, PersistentDataType.STRING, entityType.name());
 
         item.setItemMeta(meta);
         return item;
     }
 
     public static boolean isSpawner(@NotNull ItemStack item) {
-        return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING);
+        return item.getItemMeta().getPersistentDataContainer().has(SPAWNER_KEY, PersistentDataType.STRING);
     }
 
     public static EntityType getSpawnerEntity(@NotNull ItemStack item) {
@@ -321,7 +312,13 @@ public class ItemStackUtil {
             return null;
         }
 
-        return EntityType.valueOf(item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey("bitsutils", "bits_spawner"), PersistentDataType.STRING));
+        String entityName = item.getItemMeta().getPersistentDataContainer().get(SPAWNER_KEY, PersistentDataType.STRING);
+
+        try {
+            return EntityType.valueOf(entityName);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public static <P, C> void addPersistentData(@NotNull ItemStack item, @NotNull NamespacedKey key, @NotNull PersistentDataType<P, C> dataType, C value) {
@@ -336,7 +333,13 @@ public class ItemStackUtil {
     }
 
     public static boolean hasPersistentData(ItemStack itemStack, String key) {
-        return itemStack.getItemMeta().getPersistentDataContainer().getKeys().stream().anyMatch(pKey -> pKey.getKey().equalsIgnoreCase(key));
+        ItemMeta meta = itemStack.getItemMeta();
+
+        if (meta == null) {
+            return false;
+        }
+
+        return meta.getPersistentDataContainer().getKeys().stream().anyMatch(pKey -> pKey.getKey().equalsIgnoreCase(key));
     }
 
     public static boolean hasPersistentData(@NotNull ItemStack item, @NotNull NamespacedKey key) {
@@ -360,7 +363,13 @@ public class ItemStackUtil {
     }
 
     public static <T, Z> boolean persistentDataMatches(ItemStack itemStack, PersistentDataType<T, Z> type, Z value) {
-        PersistentDataContainer dataContainer = itemStack.getItemMeta().getPersistentDataContainer();
+        ItemMeta meta = itemStack.getItemMeta();
+
+        if (meta == null) {
+            return false;
+        }
+
+        PersistentDataContainer dataContainer = meta.getPersistentDataContainer();
         return dataContainer.getKeys().stream().filter(pKey -> dataContainer.has(pKey, type)).anyMatch(pKey -> dataContainer.get(pKey, type) == value);
     }
 

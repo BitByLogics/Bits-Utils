@@ -4,8 +4,8 @@ import lombok.NonNull;
 import net.bitbylogic.utils.reference.ObjectReference;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Explicit registry for ActionReference objects.
@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public final class ActionReferenceRegistry {
 
-    private static final Map<String, ActionReference> REFERENCES = new HashMap<>();
+    private static final Map<String, ActionReference> REFERENCES = new ConcurrentHashMap<>();
 
     private ActionReferenceRegistry() {
         // utility class

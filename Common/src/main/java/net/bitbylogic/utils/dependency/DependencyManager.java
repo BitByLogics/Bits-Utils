@@ -8,18 +8,20 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Getter
 public class DependencyManager {
 
-    private final HashMap<Class<?>, Object> dependencies;
-    private final HashMap<Class<?>, List<Object>> missingDependencies;
+    private final Map<Class<?>, Object> dependencies;
+    private final Map<Class<?>, List<Object>> missingDependencies;
     private final List<DependencyListener> dependencyListeners;
 
     public DependencyManager() {
-        this.dependencies = new HashMap<>();
-        this.missingDependencies = new HashMap<>();
+        this.dependencies = new ConcurrentHashMap<>();
+        this.missingDependencies = new ConcurrentHashMap<>();
         this.dependencyListeners = new ArrayList<>();
 
         registerDependency(this.getClass(), this);
@@ -32,12 +34,13 @@ public class DependencyManager {
 
         dependencies.put(clazz, instance);
 
-        if (!missingDependencies.containsKey(clazz)) {
+        List<Object> pendingObjects = missingDependencies.remove(clazz);
+
+        if (pendingObjects == null) {
             return;
         }
 
-        missingDependencies.get(clazz).forEach(obj -> injectDependencies(obj, true));
-        missingDependencies.remove(clazz);
+        pendingObjects.forEach(obj -> injectDependencies(obj, true));
     }
 
     public void injectDependencies(@NonNull Object object, boolean deepInjection) {
@@ -80,14 +83,13 @@ public class DependencyManager {
     }
 
     private void handleMissingDependency(@NonNull Field field, @NonNull Object object) {
-        List<Object> pendingObjects = missingDependencies.getOrDefault(field.getType(), new ArrayList<>());
+        List<Object> pendingObjects = missingDependencies.computeIfAbsent(field.getType(), type -> new CopyOnWriteArrayList<>());
 
         if (pendingObjects.contains(object)) {
             return;
         }
 
         pendingObjects.add(object);
-        missingDependencies.put(field.getType(), pendingObjects);
     }
 
     private void injectIntoField(@NonNull Object object, @NonNull Field field, @NonNull Object dependency) {

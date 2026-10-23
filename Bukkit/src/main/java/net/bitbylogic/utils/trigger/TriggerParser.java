@@ -31,16 +31,6 @@ public class TriggerParser {
             parseTrigger(triggerSection, action).ifPresent(triggers::add);
         });
 
-        for (Trigger trigger : triggers) {
-            for (Trigger other : triggers) {
-                if(trigger == other) {
-                    continue;
-                }
-
-                trigger.getChildren().add(other);
-            }
-        }
-
         return triggers;
     }
 

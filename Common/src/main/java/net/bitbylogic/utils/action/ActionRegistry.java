@@ -2,14 +2,14 @@ package net.bitbylogic.utils.action;
 
 import lombok.NonNull;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class ActionRegistry {
 
-    private static final Map<String, Action> ACTIONS = new HashMap<>();
+    private static final Map<String, Action> ACTIONS = new ConcurrentHashMap<>();
 
     // Prevent instantiation
     private ActionRegistry() {
@@ -26,10 +26,6 @@ public final class ActionRegistry {
 
     public static void register(@NonNull Action @NonNull... actions) {
         for (Action action : actions) {
-            if(ACTIONS.containsKey(action.getId().toLowerCase())) {
-                return;
-            }
-
             ACTIONS.putIfAbsent(action.getId().toLowerCase(), action);
         }
     }

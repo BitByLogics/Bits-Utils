@@ -58,7 +58,13 @@ public class DefaultConfigWrapper implements ConfigWrapper<Object> {
                 Map<String, ItemStack> map = (Map<String, ItemStack>) requestedClass.newInstance();
 
                 for (String key : ((ConfigurationSection) wrappedObject).getKeys(false)) {
-                    map.put(key, ItemStackUtil.getFromConfig(((ConfigurationSection) wrappedObject).getConfigurationSection(key)));
+                    ConfigurationSection itemSection = ((ConfigurationSection) wrappedObject).getConfigurationSection(key);
+
+                    if (itemSection == null) {
+                        continue;
+                    }
+
+                    map.put(key, ItemStackUtil.getFromConfig(itemSection));
                 }
 
                 return map;

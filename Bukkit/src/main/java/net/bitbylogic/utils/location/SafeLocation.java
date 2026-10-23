@@ -17,6 +17,11 @@ public class SafeLocation implements Serializable {
 
     public static SafeLocation fromString(String string) {
         String[] data = string.split(":");
+
+        if (data.length != 4) {
+            throw new IllegalArgumentException("Invalid SafeLocation string");
+        }
+
         return new SafeLocation(data[0], Double.parseDouble(data[1]), Double.parseDouble(data[2]), Double.parseDouble(data[3]));
     }
 

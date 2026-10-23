@@ -19,6 +19,11 @@ public class ActionParser {
 
     public static Optional<ParsedAction> parseAction(@NonNull String actionData) {
         String[] splitData = actionData.split(":", 2);
+
+        if (splitData.length < 2) {
+            return Optional.empty();
+        }
+
         String id = splitData[0];
         String data = splitData[1];
 

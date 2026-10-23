@@ -50,4 +50,19 @@ public class NumberUtil {
         return true;
     }
 
+    /**
+     * Parse a float, falling back to a default value if the string is invalid.
+     *
+     * @param string   The string to parse.
+     * @param fallback The value to return if parsing fails.
+     * @return The parsed float, or the fallback.
+     */
+    public static float parseFloat(String string, float fallback) {
+        try {
+            return Float.parseFloat(string);
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
 }

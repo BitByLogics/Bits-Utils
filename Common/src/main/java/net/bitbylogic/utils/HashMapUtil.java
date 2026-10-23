@@ -18,7 +18,7 @@ public class HashMapUtil {
                 return;
             }
 
-            map.keySet().forEach(key -> builder.append(entrySeparator).append(key).append(valueSeparator).append(map.get(key)));
+            builder.append(entrySeparator).append(k).append(valueSeparator).append(v);
         });
 
         return builder.substring(1);

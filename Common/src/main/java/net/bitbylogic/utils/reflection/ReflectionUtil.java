@@ -12,7 +12,7 @@ public class ReflectionUtil {
         do {
             try {
                 return currentClass.getDeclaredField(fieldName);
-            } catch (Exception e) {
+            } catch (NoSuchFieldException ignored) {
             }
         } while ((currentClass = currentClass.getSuperclass()) != null);
 
@@ -27,7 +27,7 @@ public class ReflectionUtil {
             Type[] arguments = parameterizedType.getActualTypeArguments();
 
             if (arguments.length > 0) {
-                return arguments[0].getClass().isInstance(entryClass);
+                return arguments[0].equals(entryClass);
             }
         }
 
@@ -42,7 +42,7 @@ public class ReflectionUtil {
             Type[] arguments = parameterizedType.getActualTypeArguments();
 
             if (arguments.length > 1) {
-                return arguments[1].getClass().isInstance(valueClass);
+                return arguments[1].equals(valueClass);
             }
         }
 
@@ -52,32 +52,8 @@ public class ReflectionUtil {
     public static Class<?> getParameterizedType(Field field, Class<?> valueClass) {
         field.setAccessible(true);
 
-        if (isListOf(field, valueClass)) {
-            Type fieldType = field.getGenericType();
-
-            if (fieldType instanceof ParameterizedType parameterizedType) {
-                Type[] arguments = parameterizedType.getActualTypeArguments();
-
-                if (arguments.length > 0) {
-                    return arguments[0].getClass().isInstance(valueClass) ? arguments[0].getClass() : null;
-                }
-            }
-
-            return null;
-        }
-
-        if (isMapOf(field, valueClass)) {
-            Type fieldType = field.getGenericType();
-
-            if (fieldType instanceof ParameterizedType parameterizedType) {
-                Type[] arguments = parameterizedType.getActualTypeArguments();
-
-                if (arguments.length > 1) {
-                    return arguments[1].getClass().isInstance(valueClass) ? arguments[1].getClass() : null;
-                }
-            }
-
-            return null;
+        if (isListOf(field, valueClass) || isMapOf(field, valueClass)) {
+            return valueClass;
         }
 
         return field.getType();

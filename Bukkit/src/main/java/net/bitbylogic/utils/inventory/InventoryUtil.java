@@ -236,52 +236,7 @@ public class InventoryUtil {
      * @return Whether the inventory has the items.
      */
     public static boolean hasItems(Inventory inventory, ItemStack itemStack, int amount, boolean compareFlags, boolean compareName, boolean compareLore, boolean compareDurability) {
-        if (itemStack == null) {
-            return false;
-        }
-
-        AtomicInteger currentSlot = new AtomicInteger(0);
-        Inventory testInv = Bukkit.createInventory(null, inventory instanceof PlayerInventory ? 36 : inventory.getSize());
-
-        ItemStack[] contents = inventory.getContents().clone();
-
-        // Get rid of armor
-        if (inventory instanceof PlayerInventory) {
-            contents[contents.length - 2] = null;
-            contents[contents.length - 3] = null;
-            contents[contents.length - 4] = null;
-            contents[contents.length - 5] = null;
-        }
-
-        Arrays.stream(contents).filter(Objects::nonNull).forEach(invItem -> {
-            ItemStack clonedItem = invItem.clone();
-            testInv.setItem(currentSlot.getAndIncrement(), clonedItem);
-        });
-
-        int found = 0;
-        for (ItemStack item : testInv.getContents()) {
-            if (item == null || item.getType() == Material.AIR) {
-                continue;
-            }
-
-            if (!ItemStackUtil.isSimilar(item, itemStack, compareFlags, compareName, compareLore)) {
-                continue;
-            }
-
-            if (itemStack.getType() == Material.SPAWNER && ItemStackUtil.spawnerMatches(itemStack, item)) {
-                found += item.getAmount();
-                continue;
-            }
-
-            if (compareDurability && item.getDurability() == itemStack.getDurability()) {
-                found += item.getAmount();
-                continue;
-            }
-
-            found += item.getAmount();
-        }
-
-        return found >= amount;
+        return getItems(inventory, itemStack, compareFlags, compareName, compareLore, compareDurability) >= amount;
     }
 
     /**
@@ -321,14 +276,6 @@ public class InventoryUtil {
         Inventory testInv = Bukkit.createInventory(null, inventory instanceof PlayerInventory ? 36 : inventory.getSize());
 
         ItemStack[] contents = inventory.getContents().clone();
-
-        // Get rid of armor
-        if (inventory instanceof PlayerInventory) {
-            contents[contents.length - 2] = null;
-            contents[contents.length - 3] = null;
-            contents[contents.length - 4] = null;
-            contents[contents.length - 5] = null;
-        }
 
         Arrays.stream(contents).filter(Objects::nonNull).forEach(invItem -> {
             ItemStack clonedItem = invItem.clone();

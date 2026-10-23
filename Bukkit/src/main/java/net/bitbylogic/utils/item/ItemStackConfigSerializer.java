@@ -58,25 +58,23 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         // Define the items name
         if (section.getString("Name") != null) {
-            meta.displayName(MessageUtil.deserialize(section.getString("Name"), placeholders).compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+            meta.displayName(MessageUtil.deserialize(section.getString("Name"), placeholders)
+                    .compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
         }
 
         List<Component> lore = new ArrayList<>();
 
-        section.getStringList("Lore").forEach(string -> lore.add(MessageUtil.deserialize(string, placeholders)));
-
-        lore.replaceAll(component -> component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+        section.getStringList("Lore").forEach(string -> lore.add(MessageUtil.deserialize(string, placeholders)
+                .compact().style(style -> style.decoration(TextDecoration.ITALIC, false))));
 
         meta.lore(lore);
 
-        meta.setMaxStackSize(section.getInt("Max-Stack-Size", meta.hasMaxStackSize() ? meta.getMaxStackSize() : 64));
+        meta.setMaxStackSize(section.getInt("Max-Stack-Size", stack.getType().getMaxStackSize()));
 
         // Add persistent data keys
-        if (!section.getStringList("Custom-Data").isEmpty()) {
-            for (String data : section.getStringList("Custom-Data")) {
-                String[] splitData = data.split(":");
-                meta.getPersistentDataContainer().set(new NamespacedKey(splitData[0], splitData[1]), PersistentDataType.STRING, splitData[2]);
-            }
+        for (String data : section.getStringList("Custom-Data")) {
+            String[] splitData = data.split(":");
+            meta.getPersistentDataContainer().set(new NamespacedKey(splitData[0], splitData[1]), PersistentDataType.STRING, splitData[2]);
         }
 
         // Make the item glow
@@ -87,6 +85,10 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         if (section.getBoolean("Hide-Tooltip")) {
             meta.setHideTooltip(true);
+        }
+
+        if (section.getBoolean("Unbreakable")) {
+            meta.setUnbreakable(true);
         }
 
         // If leather armor, apply dye color if defined
@@ -106,13 +108,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
                 PotionMeta potionMeta = (PotionMeta) meta;
 
                 if(potionSection.isSet("Color") && ColorUtil.containsHexColor(potionSection.getString("Color"))) {
-                    String hexColor = potionSection.getString("Color");
-
-                    int r = Integer.parseInt(hexColor.substring(0, 2), 16);
-                    int g = Integer.parseInt(hexColor.substring(2, 4), 16);
-                    int b = Integer.parseInt(hexColor.substring(4, 6), 16);
-
-                    potionMeta.setColor(Color.fromRGB(r, g, b));
+                    potionMeta.setColor(ColorUtil.hexToRGB(potionSection.getString("Color")));
                 }
 
                 String potionType = potionSection.getString("Type", "POISON");
@@ -136,7 +132,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) meta;
-            skullMeta.setOwner(section.getString("Skull-Name", "Notch"));
+            skullMeta.setOwner(section.getString("Skull-Name"));
             meta = skullMeta;
         }
 
@@ -360,11 +356,11 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
             if (potionMeta.getBasePotionType() != null) {
                 section.set("Potion-Data.Vanilla", true);
                 section.set("Potion-Data.Type", potionMeta.getBasePotionType().name());
-            } else if (potionMeta.getCustomEffects().size() > 1) {
+            } else if (!potionMeta.getCustomEffects().isEmpty()) {
                 PotionEffect effect = potionMeta.getCustomEffects().getFirst();
                 section.set("Potion-Data.Type", effect.getType().getKey().getKey());
-                section.set("Duration", effect.getDuration());
-                section.set("Amplifier", effect.getAmplifier() + 1);
+                section.set("Potion-Data.Duration", effect.getDuration());
+                section.set("Potion-Data.Amplifier", effect.getAmplifier() + 1);
             }
         }
 

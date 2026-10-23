@@ -2,14 +2,14 @@ package net.bitbylogic.utils.context;
 
 import lombok.NonNull;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class Context {
 
-    private final Map<ContextKey<?>, Object> values = new HashMap<>();
-    private final Map<String, Object> attributes = new HashMap<>();
+    private final Map<ContextKey<?>, Object> values = new ConcurrentHashMap<>();
+    private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
     public <T> void put(@NonNull ContextKey<T> key, @NonNull T value) {
         values.put(key, value);
