@@ -1,5 +1,6 @@
 package net.bitbylogic.utils.item;
 
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
@@ -10,47 +11,41 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
-public class ItemSerializer {
+public final class ItemSerializer {
 
-    public static String itemStackToBase64(ItemStack item) {
-        if (item == null) {
-            return null;
-        }
+    private ItemSerializer() {
 
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-             BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream)) {
-
-            dataOutput.writeObject(item.serialize());
-            dataOutput.flush();
-
-            return Base64Coder.encodeLines(outputStream.toByteArray());
-        } catch (IOException e) {
-            Bukkit.getLogger().warning("(ItemSerializer): Failed to serialize ItemStack to base64: " + e.getMessage());
-        }
-
-        return null;
     }
 
-    public static ItemStack itemStackFromBase64(String data) {
+    public static Optional<String> itemStackToBase64(@NonNull ItemStack item) {
+        return itemStackArrayToBase64(new ItemStack[]{item});
+    }
+
+    public static Optional<ItemStack> itemStackFromBase64(String data) {
         if (data == null || data.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
-        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(data));
-             BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream)) {
+        Optional<ItemStack> legacy = readLegacyItem(data);
 
-            return ItemStack.deserialize((Map<String, Object>) dataInput.readObject());
-        } catch (ClassNotFoundException | IOException e) {
-            Bukkit.getLogger().warning("(ItemSerializer): Failed to deserialize ItemStack from base64: " + e.getMessage());
+        if (legacy.isPresent()) {
+            return legacy;
         }
 
-        return null;
+        return itemStackArrayFromBase64(data).flatMap(items -> {
+            if (items.length == 0 || items[0] == null) {
+                return Optional.empty();
+            }
+
+            return Optional.of(items[0]);
+        });
     }
 
-    public static String itemStackArrayToBase64(ItemStack[] items) throws IllegalStateException {
-        if (items == null || items.length == 0) {
-            return "";
+    public static Optional<String> itemStackArrayToBase64(@NonNull ItemStack[] items) {
+        if (items.length == 0) {
+            return Optional.of("");
         }
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -58,20 +53,21 @@ public class ItemSerializer {
 
             dataOutput.writeInt(items.length);
 
-            for (int i = 0; i < items.length; i++) {
-                dataOutput.writeObject(items[i]);
+            for (ItemStack item : items) {
+                dataOutput.writeObject(item);
             }
 
             dataOutput.flush();
-            return Base64Coder.encodeLines(outputStream.toByteArray());
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to save item stacks.", e);
+            return Optional.of(Base64Coder.encodeLines(outputStream.toByteArray()));
+        } catch (IOException e) {
+            Bukkit.getLogger().warning("(ItemSerializer): Failed to serialize items to base64: " + e.getMessage());
+            return Optional.empty();
         }
     }
 
-    public static ItemStack[] itemStackArrayFromBase64(String data) throws IOException {
+    public static Optional<ItemStack[]> itemStackArrayFromBase64(String data) {
         if (data == null || data.isEmpty()) {
-            return new ItemStack[]{};
+            return Optional.of(new ItemStack[]{});
         }
 
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(data));
@@ -79,13 +75,36 @@ public class ItemSerializer {
             ItemStack[] items = new ItemStack[dataInput.readInt()];
 
             for (int i = 0; i < items.length; i++) {
-                items[i] = (ItemStack) dataInput.readObject();
+                items[i] = readItem(dataInput.readObject());
             }
 
-            return items;
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Unable to decode class type.", e);
+            return Optional.of(items);
+        } catch (ClassNotFoundException | IOException | IllegalArgumentException | NegativeArraySizeException e) {
+            Bukkit.getLogger().warning("(ItemSerializer): Failed to deserialize items from base64: " + e.getMessage());
+            return Optional.empty();
         }
+    }
+
+    private static Optional<ItemStack> readLegacyItem(String data) {
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(data));
+             BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream)) {
+            return Optional.ofNullable(readItem(dataInput.readObject()));
+        } catch (ClassNotFoundException | IOException | IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ItemStack readItem(Object object) {
+        if (object instanceof ItemStack item) {
+            return item;
+        }
+
+        if (object instanceof Map<?, ?> map) {
+            return ItemStack.deserialize((Map<String, Object>) map);
+        }
+
+        return null;
     }
 
 }

@@ -5,6 +5,8 @@ import org.bukkit.World;
 import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Optional;
+
 public record GlobalPosition(double x, double y, double z) {
 
     public GlobalPosition toBlock() {
@@ -23,9 +25,18 @@ public record GlobalPosition(double x, double y, double z) {
         return String.format("%s:%s:%s", x, y, z);
     }
 
-    public static GlobalPosition fromString(@NotNull String string) {
+    public static Optional<GlobalPosition> parse(@NotNull String string) {
         String[] data = string.split(":");
-        return new GlobalPosition(Double.parseDouble(data[0]), Double.parseDouble(data[1]), Double.parseDouble(data[2]));
+
+        if (data.length != 3) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(new GlobalPosition(Double.parseDouble(data[0]), Double.parseDouble(data[1]), Double.parseDouble(data[2])));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
 }

@@ -58,7 +58,7 @@ public final class ContextBuilder {
     }
 
     public Context build() {
-        return context;
+        return context.copy();
     }
 
 }

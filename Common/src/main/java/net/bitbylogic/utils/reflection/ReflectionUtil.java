@@ -2,7 +2,6 @@ package net.bitbylogic.utils.reflection;
 
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ReflectionUtil {
 
@@ -20,7 +19,6 @@ public class ReflectionUtil {
     }
 
     public static boolean isListOf(Field field, Class<?> entryClass) {
-        field.setAccessible(true);
         Type fieldType = field.getGenericType();
 
         if (fieldType instanceof ParameterizedType parameterizedType) {
@@ -35,7 +33,6 @@ public class ReflectionUtil {
     }
 
     public static boolean isMapOf(Field field, Class<?> valueClass) {
-        field.setAccessible(true);
         Type fieldType = field.getGenericType();
 
         if (fieldType instanceof ParameterizedType parameterizedType) {
@@ -50,8 +47,6 @@ public class ReflectionUtil {
     }
 
     public static Class<?> getParameterizedType(Field field, Class<?> valueClass) {
-        field.setAccessible(true);
-
         if (isListOf(field, valueClass) || isMapOf(field, valueClass)) {
             return valueClass;
         }
@@ -101,6 +96,11 @@ public class ReflectionUtil {
         LinkedList<Class<?>> parameterClasses = new LinkedList<>();
 
         for (Object parameter : parameters) {
+            if (parameter == null) {
+                parameterClasses.add(Object.class);
+                continue;
+            }
+
             parameterClasses.add(parameter.getClass());
         }
 
@@ -114,7 +114,7 @@ public class ReflectionUtil {
                 continue;
             }
 
-            if (!new HashSet<>(List.of(constructor.getParameterTypes())).containsAll(List.of(parameters))) {
+            if (!parametersAccept(constructor.getParameterTypes(), parameters)) {
                 continue;
             }
 
@@ -122,6 +122,75 @@ public class ReflectionUtil {
         }
 
         return null;
+    }
+
+    private static boolean parametersAccept(Class<?>[] declared, Class<?>[] supplied) {
+        boolean[] used = new boolean[supplied.length];
+
+        for (Class<?> type : declared) {
+            boolean matched = false;
+
+            for (int i = 0; i < supplied.length; i++) {
+                if (used[i] || !getWrapperType(type).isAssignableFrom(getWrapperType(supplied[i]))) {
+                    continue;
+                }
+
+                used[i] = true;
+                matched = true;
+                break;
+            }
+
+            if (!matched) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean namedParametersAccept(Constructor<?> constructor, NamedParameter[] parameters) {
+        Parameter[] declared = constructor.getParameters();
+
+        for (Parameter parameter : declared) {
+            boolean matched = false;
+
+            for (NamedParameter named : parameters) {
+                if (!named.getName().equals(parameter.getName())) {
+                    continue;
+                }
+
+                Object value = named.getValue();
+                matched = value == null || getWrapperType(parameter.getType()).isInstance(value);
+                break;
+            }
+
+            if (!matched) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static Object[] orderByType(Class<?>[] parameterTypes, Object[] parameters) {
+        Object[] ordered = new Object[parameterTypes.length];
+        boolean[] used = new boolean[parameters.length];
+
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class<?> wrapper = getWrapperType(parameterTypes[i]);
+
+            for (int j = 0; j < parameters.length; j++) {
+                if (used[j] || !wrapper.isInstance(parameters[j])) {
+                    continue;
+                }
+
+                ordered[i] = parameters[j];
+                used[j] = true;
+                break;
+            }
+        }
+
+        return ordered;
     }
 
     public static <T> T callConstructor(Constructor<T> constructor, NamedParameter... parameters) throws InvocationTargetException, InstantiationException, IllegalAccessException {
@@ -133,7 +202,7 @@ public class ReflectionUtil {
 
         Parameter[] constructorParameters = constructor.getParameters();
         Class<?>[] parameterTypes = constructor.getParameterTypes();
-        Object[] orderedParameters = new Object[parameters.length];
+        Object[] orderedParameters = new Object[parameterTypes.length];
 
         for (int i = 0; i < parameterTypes.length; i++) {
             Parameter parameter = constructorParameters[i];
@@ -150,20 +219,7 @@ public class ReflectionUtil {
     }
 
     public static <T> T callConstructor(Constructor<T> constructor, Object... parameters) throws InvocationTargetException, InstantiationException, IllegalAccessException {
-        HashMap<Class<?>, Object> parameterMap = new HashMap<>();
-
-        for (Object parameter : parameters) {
-            parameterMap.put(parameter.getClass(), parameter);
-        }
-
-        Class<?>[] parameterTypes = constructor.getParameterTypes();
-        Object[] orderedParameters = new Object[parameters.length];
-
-        for (int i = 0; i < parameterTypes.length; i++) {
-            orderedParameters[i] = parameterMap.get(parameterTypes[i]);
-        }
-
-        return constructor.newInstance(orderedParameters);
+        return constructor.newInstance(orderByType(constructor.getParameterTypes(), parameters));
     }
 
     public static <T> T findAndCallConstructor(Class<T> clazz, Object... parameters) throws InvocationTargetException, InstantiationException, IllegalAccessException {
@@ -173,25 +229,20 @@ public class ReflectionUtil {
             return null;
         }
 
-        HashMap<Class<?>, Object> parameterMap = new HashMap<>();
-
-        for (Object parameter : parameters) {
-            parameterMap.put(parameter.getClass(), parameter);
-        }
-
-        Class<?>[] parameterTypes = constructor.getParameterTypes();
-        Object[] orderedParameters = new Object[parameters.length];
-
-        for (int i = 0; i < parameterTypes.length; i++) {
-            orderedParameters[i] = parameterMap.get(parameterTypes[i]);
-        }
-
-        return constructor.newInstance(orderedParameters);
+        return constructor.newInstance(orderByType(constructor.getParameterTypes(), parameters));
     }
 
     public static <T> T findAndCallConstructor(Class<T> clazz, NamedParameter... parameters) throws InvocationTargetException, InstantiationException, IllegalAccessException {
-        Constructor<T> constructor = findConstructor(clazz, Arrays.stream(parameters).map(named -> named.getValue().getClass())
-                .collect(Collectors.toSet()).toArray(new Class<?>[]{}));
+        Constructor<T> constructor = null;
+
+        for (Constructor<?> candidate : clazz.getDeclaredConstructors()) {
+            if (candidate.getParameterCount() != parameters.length || !namedParametersAccept(candidate, parameters)) {
+                continue;
+            }
+
+            constructor = (Constructor<T>) candidate;
+            break;
+        }
 
         if (constructor == null) {
             return null;
@@ -205,7 +256,7 @@ public class ReflectionUtil {
 
         Parameter[] constructorParameters = constructor.getParameters();
         Class<?>[] parameterTypes = constructor.getParameterTypes();
-        Object[] orderedParameters = new Object[parameters.length];
+        Object[] orderedParameters = new Object[parameterTypes.length];
 
         for (int i = 0; i < parameterTypes.length; i++) {
             Parameter parameter = constructorParameters[i];

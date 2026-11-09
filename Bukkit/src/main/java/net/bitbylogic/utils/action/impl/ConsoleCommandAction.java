@@ -2,7 +2,6 @@ package net.bitbylogic.utils.action.impl;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.bitbylogic.utils.action.Action;
 import net.bitbylogic.utils.action.ConfiguredMetadataActionData;
 import net.bitbylogic.utils.action.data.ActionData;
@@ -10,7 +9,9 @@ import net.bitbylogic.utils.action.data.StringActionData;
 import net.bitbylogic.utils.context.BukkitContextKeys;
 import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.context.DefaultContextKeys;
+import net.bitbylogic.utils.message.PlaceholderUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
 
 @NoArgsConstructor
 public class ConsoleCommandAction implements Action {
@@ -36,10 +37,16 @@ public class ConsoleCommandAction implements Action {
         }
 
         String finalCommand = context.get(BukkitContextKeys.PLAYER)
-                .map(player -> PlaceholderAPI.setPlaceholders(player, command.replace("%player%", player.getName())))
+                .map(player -> PlaceholderUtil.apply(player, command))
                 .orElse(command);
 
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+        if (Bukkit.isGlobalTickThread()) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+            return true;
+        }
+
+        Bukkit.getGlobalRegionScheduler().run(JavaPlugin.getProvidingPlugin(ConsoleCommandAction.class), task ->
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
         return true;
     }
 

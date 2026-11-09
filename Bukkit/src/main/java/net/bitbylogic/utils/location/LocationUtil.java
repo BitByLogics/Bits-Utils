@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -21,42 +22,69 @@ public class LocationUtil {
         return (lx << 38) | (lz << 12) | ly;
     }
 
-    public static Location decode(@NonNull String worldName, long packed) {
+    public static int unpackX(long packed) {
+        int x = (int) ((packed >> 38) & 0x3FFFFFFL);
+
+        if (x >= 0x2000000) {
+            x -= 0x4000000;
+        }
+
+        return x;
+    }
+
+    public static int unpackY(long packed) {
+        int y = (int) (packed & 0xFFF);
+
+        if (y >= 0x800) {
+            y -= 0x1000;
+        }
+
+        return y;
+    }
+
+    public static int unpackZ(long packed) {
+        int z = (int) ((packed >> 12) & 0x3FFFFFFL);
+
+        if (z >= 0x2000000) {
+            z -= 0x4000000;
+        }
+
+        return z;
+    }
+
+    public static Optional<Location> decode(@NonNull String worldName, long packed) {
         World world = Bukkit.getWorld(worldName);
 
         if (world == null) {
-            return null;
+            return Optional.empty();
         }
 
-        int x = (int)((packed >> 38) & 0x3FFFFFFL);
-        int z = (int)((packed >> 12) & 0x3FFFFFFL);
-        int y = (int)(packed & 0xFFF);
-
-        if (x >= 0x2000000) x -= 0x4000000;
-        if (z >= 0x2000000) z -= 0x4000000;
-        if (y >= 0x800) y -= 0x1000;
-
-        return new Location(world, x, y, z);
+        return Optional.of(new Location(world, unpackX(packed), unpackY(packed), unpackZ(packed)));
     }
 
-    public static long encodeChunk(@NonNull int chunkX, int chunkZ) {
+    public static long encodeChunk(int chunkX, int chunkZ) {
         long lx = ((long)chunkX & 0xFFFFFFFFL);
         long lz = ((long)chunkZ & 0xFFFFFFFFL);
 
         return (lx << 32) | lz;
     }
 
-    public static Chunk decodeChunk(@NonNull String worldName, long packed) {
+    public static int unpackChunkX(long packed) {
+        return (int) (packed >> 32);
+    }
+
+    public static int unpackChunkZ(long packed) {
+        return (int) (packed & 0xFFFFFFFFL);
+    }
+
+    public static Optional<Chunk> decodeChunk(@NonNull String worldName, long packed) {
         World world = Bukkit.getWorld(worldName);
 
         if (world == null) {
-            return null;
+            return Optional.empty();
         }
 
-        int x = (int)(packed >> 32);
-        int z = (int)(packed & 0xFFFFFFFFL);
-
-        return world.getChunkAt(x, z);
+        return Optional.of(world.getChunkAt(unpackChunkX(packed), unpackChunkZ(packed)));
     }
 
     /**
@@ -163,12 +191,17 @@ public class LocationUtil {
         return data;
     }
 
+    public static NamespacedKey persistentKey(@NonNull JavaPlugin plugin, @NonNull Location location) {
+        String key = locationToString(location, "._.").toLowerCase().replaceAll("[^a-z0-9._-]", "-");
+        return new NamespacedKey(plugin, key);
+    }
+
     public static boolean hasPersistentData(JavaPlugin plugin, Location location) {
-        return location.getChunk().getPersistentDataContainer().has(new NamespacedKey(plugin, locationToString(location, "._.")), PersistentDataType.TAG_CONTAINER);
+        return location.getChunk().getPersistentDataContainer().has(persistentKey(plugin, location), PersistentDataType.TAG_CONTAINER);
     }
 
     public static PersistentDataContainer getPersistentData(JavaPlugin plugin, Location location, boolean create) {
-        NamespacedKey locationKey = new NamespacedKey(plugin, locationToString(location, "._."));
+        NamespacedKey locationKey = persistentKey(plugin, location);
         Chunk chunk = location.getChunk();
 
         if (!chunk.getPersistentDataContainer().has(locationKey, PersistentDataType.TAG_CONTAINER)) {
@@ -184,7 +217,7 @@ public class LocationUtil {
     }
 
     public static void deletePersistentData(JavaPlugin plugin, Location location) {
-        NamespacedKey locationKey = new NamespacedKey(plugin, locationToString(location, "._."));
+        NamespacedKey locationKey = persistentKey(plugin, location);
         Chunk chunk = location.getChunk();
 
         if (!chunk.getPersistentDataContainer().has(locationKey, PersistentDataType.TAG_CONTAINER)) {
@@ -195,7 +228,7 @@ public class LocationUtil {
     }
 
     public static void savePersistentData(JavaPlugin plugin, Location location, PersistentDataContainer container) {
-        location.getChunk().getPersistentDataContainer().set(new NamespacedKey(plugin, locationToString(location, "._.")), PersistentDataType.TAG_CONTAINER, container);
+        location.getChunk().getPersistentDataContainer().set(persistentKey(plugin, location), PersistentDataType.TAG_CONTAINER, container);
     }
 
     public static int getHighestBlockY(World world, int x, int z) {

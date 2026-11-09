@@ -32,14 +32,18 @@ public class SoundData {
         location.getWorld().playSound(location, sound, volume, pitch);
     }
 
-    public static SoundData fromString(@NonNull String string) {
+    public static Optional<SoundData> parse(@NonNull String string) {
         String[] data = string.split(":");
 
         if (data.length != 3) {
-            throw new IllegalArgumentException("Invalid SoundData string");
+            return Optional.empty();
         }
 
-        return new SoundData(Sound.valueOf(data[0].toUpperCase()), Float.parseFloat(data[1]), Float.parseFloat(data[2]));
+        try {
+            return Optional.of(new SoundData(Sound.valueOf(data[0].toUpperCase()), Float.parseFloat(data[1]), Float.parseFloat(data[2])));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     /**

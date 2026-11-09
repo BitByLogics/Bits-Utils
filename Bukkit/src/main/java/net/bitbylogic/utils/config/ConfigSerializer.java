@@ -8,11 +8,10 @@ import java.util.Optional;
 
 public interface ConfigSerializer<O> {
 
-    Optional<O> deserialize(@NonNull ConfigurationSection section);
+    Optional<O> deserialize(@NonNull ConfigurationSection section, @NonNull TagResolver.Single... placeholders);
 
-    // Default to keep backwards compatibility
-    default Optional<O> deserialize(@NonNull ConfigurationSection section, @NonNull TagResolver.Single... placeholders) {
-        return deserialize(section);
+    default Optional<O> deserialize(@NonNull ConfigurationSection section) {
+        return deserialize(section, new TagResolver.Single[0]);
     }
 
     ConfigurationSection serialize(@NonNull ConfigurationSection section, @NonNull O object);

@@ -12,9 +12,14 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -43,42 +48,78 @@ import java.util.logging.Level;
 public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
     @Override
-    public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section) {
-        return deserialize(section, new TagResolver.Single[0]);
-    }
+    public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section, @NonNull TagResolver.Single... placeholders) {
+        String materialName = section.getString("Material", "BARRIER");
+        Material material = Material.matchMaterial(materialName);
 
-    @Override
-    public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section, TagResolver.Single... placeholders) {
-        int amount = section.getInt("Amount", 1);
-        ItemStack stack = new ItemStack(Material.valueOf(section.getString("Material", "BARRIER")), amount);
+        if (material == null || !material.isItem()) {
+            warn("Invalid material '" + materialName + "'.");
+            return Optional.empty();
+        }
+
+        ItemStack stack = new ItemStack(material, section.getInt("Amount", 1));
         ItemMeta meta = stack.getItemMeta();
 
         if (meta == null) {
             return Optional.of(stack);
         }
 
-        // Define the items name
-        if (section.getString("Name") != null) {
-            meta.displayName(MessageUtil.deserialize(section.getString("Name"), placeholders)
-                    .compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+        applyDisplay(section, meta, placeholders);
+        applyBasics(section, stack, meta);
+        applyDye(section, stack, meta);
+        applyPotion(section, stack, meta);
+        applySkull(section, meta);
+        applyModels(section, meta);
+        applyEquippable(section, meta);
+        applyFood(section, meta);
+        applyTool(section, meta);
+        applyEnchantments(section, meta);
+        applyFlags(section, meta);
+
+        stack.setItemMeta(meta);
+
+        applyConsumable(section, stack);
+
+        return Optional.of(stack);
+    }
+
+    private void applyDisplay(ConfigurationSection section, ItemMeta meta, TagResolver.Single[] placeholders) {
+        String name = section.getString("Name");
+
+        if (name != null) {
+            meta.displayName(withoutItalic(MessageUtil.deserialize(name, placeholders)));
         }
 
         List<Component> lore = new ArrayList<>();
 
-        section.getStringList("Lore").forEach(string -> lore.add(MessageUtil.deserialize(string, placeholders)
-                .compact().style(style -> style.decoration(TextDecoration.ITALIC, false))));
-
-        meta.lore(lore);
-
-        meta.setMaxStackSize(section.getInt("Max-Stack-Size", stack.getType().getMaxStackSize()));
-
-        // Add persistent data keys
-        for (String data : section.getStringList("Custom-Data")) {
-            String[] splitData = data.split(":");
-            meta.getPersistentDataContainer().set(new NamespacedKey(splitData[0], splitData[1]), PersistentDataType.STRING, splitData[2]);
+        for (String line : section.getStringList("Lore")) {
+            lore.add(withoutItalic(MessageUtil.deserialize(line, placeholders)));
         }
 
-        // Make the item glow
+        meta.lore(lore);
+    }
+
+    private void applyBasics(ConfigurationSection section, ItemStack stack, ItemMeta meta) {
+        meta.setMaxStackSize(section.getInt("Max-Stack-Size", stack.getType().getMaxStackSize()));
+
+        for (String data : section.getStringList("Custom-Data")) {
+            String[] splitData = data.split(":", 3);
+
+            if (splitData.length != 3) {
+                warn("Skipped invalid custom data '" + data + "'.");
+                continue;
+            }
+
+            NamespacedKey key = parseKey(splitData[0] + ":" + splitData[1]);
+
+            if (key == null) {
+                warn("Skipped invalid custom data key '" + data + "'.");
+                continue;
+            }
+
+            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, splitData[2]);
+        }
+
         if (section.getBoolean("Glow")) {
             meta.addEnchant(Enchantment.UNBREAKING, 37, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
@@ -92,204 +133,343 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
             meta.setUnbreakable(true);
         }
 
-        // If leather armor, apply dye color if defined
-        if (stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
-            LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) meta;
-            java.awt.Color color = ChatColor.of(section.getString("Dye-Color", ColorUtil.colorToChatColor(Bukkit.getServer().getItemFactory().getDefaultLeatherColor()).toString())).getColor();
-            leatherArmorMeta.setColor(Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()));
-            meta = leatherArmorMeta;
-        }
-
-        // If the item is a potion, apply potion data
-        if (stack.getType() == Material.SPLASH_POTION || stack.getType() == Material.POTION) {
-            ConfigurationSection potionSection = section.getConfigurationSection("Potion-Data");
-
-            if (potionSection != null) {
-                boolean vanilla = potionSection.getBoolean("Vanilla", false);
-                PotionMeta potionMeta = (PotionMeta) meta;
-
-                if(potionSection.isSet("Color") && ColorUtil.containsHexColor(potionSection.getString("Color"))) {
-                    potionMeta.setColor(ColorUtil.hexToRGB(potionSection.getString("Color")));
-                }
-
-                String potionType = potionSection.getString("Type", "POISON");
-
-                if (vanilla) {
-                    potionMeta.setBasePotionType(PotionType.valueOf(potionType));
-                } else {
-                    potionMeta.addCustomEffect(new PotionEffect(PotionEffectType.getByName(potionType), potionSection.getInt("Duration", 20), potionSection.getInt("Amplifier", 1) - 1), true);
-                }
-
-                meta = potionMeta;
-            }
-        }
-
-        if (stack.getType() == Material.TIPPED_ARROW) {
-            PotionMeta potionMeta = (PotionMeta) meta;
-            potionMeta.setBasePotionType(PotionType.valueOf(section.getString("Arrow-Type", "POISON")));
-            meta = potionMeta;
-        }
-
-        // If the item is a player head, apply skin
-        if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
-            SkullMeta skullMeta = (SkullMeta) meta;
-            skullMeta.setOwner(section.getString("Skull-Name"));
-            meta = skullMeta;
-        }
-
-        if (section.getString("Skull-URL") != null) {
-            SkullMeta skullMeta = (SkullMeta) meta;
-            PlayerProfile skullProfile = Bukkit.createPlayerProfile("Notch");
-            PlayerTextures textures = skullProfile.getTextures();
-            textures.clear();
-            try {
-                textures.setSkin(URI.create(section.getString("Skull-URL")).toURL());
-            } catch (MalformedURLException e) {
-                Bukkit.getLogger().log(Level.WARNING, "Invalid skull URL: " + section.getString("Skull-URL"), e);
-            }
-            skullProfile.setTextures(textures);
-            skullMeta.setOwnerProfile(skullProfile);
-            meta = skullMeta;
-        }
-
-        if(section.isSet("Glider")) {
+        if (section.isSet("Glider")) {
             meta.setGlider(section.getBoolean("Glider"));
         }
+    }
 
-        // Used for resourcepacks, to display custom models
+    private void applyDye(ConfigurationSection section, ItemStack stack, ItemMeta meta) {
+        String dye = section.getString("Dye-Color");
+
+        if (dye == null || !(meta instanceof LeatherArmorMeta leatherArmorMeta)) {
+            return;
+        }
+
+        try {
+            java.awt.Color color = ChatColor.of(dye).getColor();
+            leatherArmorMeta.setColor(Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()));
+        } catch (IllegalArgumentException e) {
+            warn("Invalid dye color '" + dye + "'.");
+        }
+    }
+
+    private void applyPotion(ConfigurationSection section, ItemStack stack, ItemMeta meta) {
+        if (!(meta instanceof PotionMeta potionMeta)) {
+            return;
+        }
+
+        Material type = stack.getType();
+
+        if (type == Material.TIPPED_ARROW) {
+            PotionType arrowType = parsePotionType(section.getString("Arrow-Type", "POISON"));
+
+            if (arrowType != null) {
+                potionMeta.setBasePotionType(arrowType);
+            }
+
+            return;
+        }
+
+        if (type != Material.SPLASH_POTION && type != Material.POTION) {
+            return;
+        }
+
+        ConfigurationSection potionSection = section.getConfigurationSection("Potion-Data");
+
+        if (potionSection == null) {
+            return;
+        }
+
+        if (potionSection.isSet("Color")) {
+            ColorUtil.parseHex(potionSection.getString("Color")).ifPresent(potionMeta::setColor);
+        }
+
+        String potionType = potionSection.getString("Type", "POISON");
+
+        if (potionSection.getBoolean("Vanilla", false)) {
+            PotionType base = parsePotionType(potionType);
+
+            if (base != null) {
+                potionMeta.setBasePotionType(base);
+            }
+
+            return;
+        }
+
+        PotionEffectType effectType = PotionEffectType.getByName(potionType);
+
+        if (effectType == null) {
+            warn("Invalid potion effect '" + potionType + "'.");
+            return;
+        }
+
+        potionMeta.addCustomEffect(new PotionEffect(effectType, potionSection.getInt("Duration", 20), potionSection.getInt("Amplifier", 1) - 1), true);
+    }
+
+    private void applySkull(ConfigurationSection section, ItemMeta meta) {
+        if (!(meta instanceof SkullMeta skullMeta)) {
+            return;
+        }
+
+        String skullName = section.getString("Skull-Name");
+
+        if (skullName != null) {
+            skullMeta.setOwner(skullName);
+        }
+
+        String skullUrl = section.getString("Skull-URL");
+
+        if (skullUrl == null) {
+            return;
+        }
+
+        PlayerProfile skullProfile = Bukkit.createPlayerProfile("Notch");
+        PlayerTextures textures = skullProfile.getTextures();
+        textures.clear();
+
+        try {
+            textures.setSkin(URI.create(skullUrl).toURL());
+        } catch (MalformedURLException | IllegalArgumentException e) {
+            Bukkit.getLogger().log(Level.WARNING, "Invalid skull URL: " + skullUrl, e);
+            return;
+        }
+
+        skullProfile.setTextures(textures);
+        skullMeta.setOwnerProfile(skullProfile);
+    }
+
+    private void applyModels(ConfigurationSection section, ItemMeta meta) {
         if (section.getInt("Model-Data") != 0) {
             meta.setCustomModelData(section.getInt("Model-Data"));
         }
 
-        if(section.getString("Item-Model") != null) {
-            String[] itemModelData = section.getString("Item-Model").split(":");
-            meta.setItemModel(new NamespacedKey(itemModelData[0], itemModelData[1]));
+        NamespacedKey itemModel = parseKey(section.getString("Item-Model"));
+
+        if (itemModel != null) {
+            meta.setItemModel(itemModel);
         }
 
-        if(section.getString("Tooltip-Style") != null) {
-            String[] tooltipModel = section.getString("Tooltip-Style").split(":");
-            meta.setTooltipStyle(new NamespacedKey(tooltipModel[0], tooltipModel[1]));
-        }
+        NamespacedKey tooltipStyle = parseKey(section.getString("Tooltip-Style"));
 
+        if (tooltipStyle != null) {
+            meta.setTooltipStyle(tooltipStyle);
+        }
+    }
+
+    private void applyEquippable(ConfigurationSection section, ItemMeta meta) {
         ConfigurationSection equippableSection = section.getConfigurationSection("Equippable-Options");
 
-        if (equippableSection != null) {
-            EquippableComponent component = meta.getEquippable();
-
-            if (equippableSection.contains("Slot")) {
-                component.setSlot(EquipmentSlot.valueOf(equippableSection.getString("Slot")));
-            }
-
-            if (equippableSection.contains("Model")) {
-                String[] model = equippableSection.getString("Model").split(":");
-                component.setModel(new NamespacedKey(model[0], model[1]));
-            }
-
-            if (equippableSection.contains("Camera-Overlay")) {
-                String[] overlay = equippableSection.getString("Camera-Overlay").split(":");
-                component.setCameraOverlay(new NamespacedKey(overlay[0], overlay[1]));
-            }
-
-            if (equippableSection.contains("Equip-Sound")) {
-                component.setEquipSound(Sound.valueOf(equippableSection.getString("Equip-Sound")));
-            }
-
-            if (equippableSection.contains("Allowed-Entities")) {
-                List<String> entityStrings = equippableSection.getStringList("Allowed-Entities");
-                List<org.bukkit.entity.EntityType> entities = new ArrayList<>();
-
-                for (String type : entityStrings) {
-                    try {
-                        entities.add(org.bukkit.entity.EntityType.valueOf(type));
-                    } catch (IllegalArgumentException ignored) {
-                        Bukkit.getLogger().warning("(ItemStackUtil): Skipped invalid EntityType '" + type + "' for EquippableComponent.");
-                    }
-                }
-
-                component.setAllowedEntities(entities);
-            }
-
-            component.setDispensable(equippableSection.getBoolean("Dispensable", false));
-            component.setSwappable(equippableSection.getBoolean("Swappable", false));
-            component.setDamageOnHurt(equippableSection.getBoolean("Damage-On-Hurt", false));
-
-            meta.setEquippable(component);
+        if (equippableSection == null) {
+            return;
         }
 
+        EquippableComponent component = meta.getEquippable();
+
+        if (equippableSection.contains("Slot")) {
+            EquipmentSlot slot = EnumUtil.getValue(EquipmentSlot.class, equippableSection.getString("Slot"), null);
+
+            if (slot != null) {
+                component.setSlot(slot);
+            }
+        }
+
+        NamespacedKey model = parseKey(equippableSection.getString("Model"));
+
+        if (model != null) {
+            component.setModel(model);
+        }
+
+        NamespacedKey overlay = parseKey(equippableSection.getString("Camera-Overlay"));
+
+        if (overlay != null) {
+            component.setCameraOverlay(overlay);
+        }
+
+        if (equippableSection.contains("Equip-Sound")) {
+            Sound sound = parseSound(equippableSection.getString("Equip-Sound"));
+
+            if (sound != null) {
+                component.setEquipSound(sound);
+            }
+        }
+
+        if (equippableSection.contains("Allowed-Entities")) {
+            List<EntityType> entities = new ArrayList<>();
+
+            for (String type : equippableSection.getStringList("Allowed-Entities")) {
+                EntityType entityType = EnumUtil.getValue(EntityType.class, type, null);
+
+                if (entityType == null) {
+                    warn("Skipped invalid EntityType '" + type + "' for EquippableComponent.");
+                    continue;
+                }
+
+                entities.add(entityType);
+            }
+
+            component.setAllowedEntities(entities);
+        }
+
+        component.setDispensable(equippableSection.getBoolean("Dispensable", false));
+        component.setSwappable(equippableSection.getBoolean("Swappable", false));
+        component.setDamageOnHurt(equippableSection.getBoolean("Damage-On-Hurt", false));
+
+        meta.setEquippable(component);
+    }
+
+    private void applyFood(ConfigurationSection section, ItemMeta meta) {
         ConfigurationSection foodSection = section.getConfigurationSection("Food-Options");
 
-        if(foodSection != null) {
-            FoodComponent component = meta.getFood();
-
-            component.setCanAlwaysEat(foodSection.getBoolean("Can-Always-Eat", component.canAlwaysEat()));
-            component.setNutrition(foodSection.getInt("Nutrition", component.getNutrition()));
-            component.setSaturation(foodSection.getInt("Saturation", (int) component.getSaturation()));
-
-            meta.setFood(component);
+        if (foodSection == null) {
+            return;
         }
 
+        FoodComponent component = meta.getFood();
+
+        component.setCanAlwaysEat(foodSection.getBoolean("Can-Always-Eat", component.canAlwaysEat()));
+        component.setNutrition(foodSection.getInt("Nutrition", component.getNutrition()));
+        component.setSaturation(foodSection.getInt("Saturation", (int) component.getSaturation()));
+
+        meta.setFood(component);
+    }
+
+    private void applyTool(ConfigurationSection section, ItemMeta meta) {
         ConfigurationSection toolSection = section.getConfigurationSection("Tool-Options");
 
-        if(toolSection != null) {
-            ToolComponent component = meta.getTool();
-
-            component.setDamagePerBlock(toolSection.getInt("Damage-Per-Block", component.getDamagePerBlock()));
-
-            toolSection.getStringList("Rules").forEach(s -> {
-                String[] ruleData = s.split(":");
-
-                if(ruleData.length < 3) {
-                    return;
-                }
-
-                component.addRule(EnumUtil.getValue(Material.class, ruleData[0], Material.OAK_LOG), Float.parseFloat(ruleData[1]), Boolean.parseBoolean(ruleData[2]));
-            });
-
-            component.setDefaultMiningSpeed(toolSection.getInt("Default-Mining-Speed", (int) component.getDefaultMiningSpeed()));
-
-            meta.setTool(component);
+        if (toolSection == null) {
+            return;
         }
 
-        final ItemMeta finalMeta = meta;
+        ToolComponent component = meta.getTool();
 
-        // Apply enchantments
-        section.getStringList("Enchantments").forEach(enchant -> {
+        component.setDamagePerBlock(toolSection.getInt("Damage-Per-Block", component.getDamagePerBlock()));
+
+        for (String rule : toolSection.getStringList("Rules")) {
+            String[] ruleData = rule.split(":");
+
+            if (ruleData.length < 3 || !NumberUtil.isNumber(ruleData[1])) {
+                warn("Skipped invalid tool rule '" + rule + "'.");
+                continue;
+            }
+
+            component.addRule(EnumUtil.getValue(Material.class, ruleData[0], Material.OAK_LOG), Float.parseFloat(ruleData[1]), Boolean.parseBoolean(ruleData[2]));
+        }
+
+        component.setDefaultMiningSpeed(toolSection.getInt("Default-Mining-Speed", (int) component.getDefaultMiningSpeed()));
+
+        meta.setTool(component);
+    }
+
+    private void applyEnchantments(ConfigurationSection section, ItemMeta meta) {
+        for (String enchant : section.getStringList("Enchantments")) {
             String[] data = enchant.split(":");
-            NamespacedKey key = NamespacedKey.minecraft(data[0].trim());
-            Enchantment enchantment = Enchantment.getByKey(key);
+
+            if (data.length < 2) {
+                warn("Skipped enchantment '" + enchant + "', expected name:level.");
+                continue;
+            }
+
+            NamespacedKey key = parseKey("minecraft:" + data[0].trim().toLowerCase());
+            Enchantment enchantment = null;
+
+            if (key != null) {
+                enchantment = Enchantment.getByKey(key);
+            }
+
+            if (enchantment == null) {
+                warn("Skipped enchantment '" + enchant + "', invalid enchant.");
+                continue;
+            }
+
             int level = 0;
 
             if (NumberUtil.isNumber(data[1])) {
                 level = Integer.parseInt(data[1]);
             }
 
-            if (enchantment == null) {
-                Bukkit.getLogger().warning(String.format("[APIByLogic] (ItemStackUtil): Skipped enchantment '%s', invalid enchant.", enchant));
-                return;
+            meta.addEnchant(enchantment, level, true);
+        }
+    }
+
+    private void applyFlags(ConfigurationSection section, ItemMeta meta) {
+        for (String flag : section.getStringList("Flags")) {
+            ItemFlag itemFlag = EnumUtil.getValue(ItemFlag.class, flag.toUpperCase(), null);
+
+            if (itemFlag == null) {
+                warn("Skipped invalid item flag '" + flag + "'.");
+                continue;
             }
 
-            finalMeta.addEnchant(enchantment, level, true);
-        });
-
-        for (String flag : section.getStringList("Flags")) {
-            finalMeta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
+            meta.addItemFlags(itemFlag);
         }
+    }
 
-        stack.setItemMeta(finalMeta);
-
+    private void applyConsumable(ConfigurationSection section, ItemStack stack) {
         ConfigurationSection consumableSection = section.getConfigurationSection("Consumable-Options");
 
-        if(consumableSection != null) {
-            Consumable consumable = Consumable.consumable()
-                    .hasConsumeParticles(consumableSection.getBoolean("Particles", true))
-                    .consumeSeconds(consumableSection.getInt("Consume-Seconds", 3))
-                    .sound(Sound.valueOf(consumableSection.getString("Sound", "ENTITY_GENERIC_EAT")).getKey())
-                    .build();
-
-            stack.setData(DataComponentTypes.CONSUMABLE, consumable);
+        if (consumableSection == null) {
+            return;
         }
 
-        return Optional.of(stack);
+        Sound sound = parseSound(consumableSection.getString("Sound", "ENTITY_GENERIC_EAT"));
+
+        if (sound == null) {
+            sound = Sound.ENTITY_GENERIC_EAT;
+        }
+
+        Consumable consumable = Consumable.consumable()
+                .hasConsumeParticles(consumableSection.getBoolean("Particles", true))
+                .consumeSeconds(consumableSection.getInt("Consume-Seconds", 3))
+                .sound(sound.getKey())
+                .build();
+
+        stack.setData(DataComponentTypes.CONSUMABLE, consumable);
+    }
+
+    private Component withoutItalic(Component component) {
+        return component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false));
+    }
+
+    @SuppressWarnings("deprecation")
+    private Sound parseSound(String name) {
+        if (name == null) {
+            return null;
+        }
+
+        try {
+            return Sound.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            warn("Invalid sound '" + name + "'.");
+            return null;
+        }
+    }
+
+    private PotionType parsePotionType(String name) {
+        PotionType type = EnumUtil.getValue(PotionType.class, name, null);
+
+        if (type == null) {
+            warn("Invalid potion type '" + name + "'.");
+        }
+
+        return type;
+    }
+
+    private NamespacedKey parseKey(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String[] data = value.split(":");
+
+        if (data.length != 2) {
+            return null;
+        }
+
+        return NamespacedKey.fromString(data[0].toLowerCase() + ":" + data[1].toLowerCase());
+    }
+
+    private void warn(String message) {
+        Bukkit.getLogger().warning("(ItemStackConfigSerializer): " + message);
     }
 
     @Override

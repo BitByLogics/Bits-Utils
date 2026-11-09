@@ -16,8 +16,10 @@ public class ParsedCondition {
     private final ConfiguredMetadata metadata;
 
     public boolean matches(@NonNull Context context) {
-        context.put(BukkitContextKeys.CONFIGURED_METADATA, metadata);
-        return conditionReference.get().map(condition -> condition.matches(context)).orElse(false);
+        Context conditionContext = context.copy();
+        conditionContext.put(BukkitContextKeys.CONFIGURED_METADATA, metadata);
+
+        return conditionReference.get().map(condition -> condition.matches(conditionContext)).orElse(false);
     }
 
 }

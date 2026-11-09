@@ -11,6 +11,13 @@ public final class Context {
     private final Map<ContextKey<?>, Object> values = new ConcurrentHashMap<>();
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
+    public Context copy() {
+        Context copy = new Context();
+        copy.values.putAll(values);
+        copy.attributes.putAll(attributes);
+        return copy;
+    }
+
     public <T> void put(@NonNull ContextKey<T> key, @NonNull T value) {
         values.put(key, value);
     }

@@ -6,11 +6,13 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 
-public record WorldPosition(@NonNull String worldName, double x, double y, double z) {
+public record WorldPosition(@NonNull String worldName, double x, double y, double z) implements Serializable {
 
     public static WorldPosition of(@NonNull Location location) {
         return new WorldPosition(location.getWorld().getName(), location.getX(), location.getY(), location.getZ());
@@ -20,14 +22,22 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
         return new WorldPosition(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
     }
 
-    public static WorldPosition of(@NonNull String string) {
-        String[] split = string.split(":");
-
-        if(split.length != 4) {
-            throw new IllegalArgumentException("Invalid WorldPosition string");
+    public static Optional<WorldPosition> parse(@Nullable String string) {
+        if (string == null) {
+            return Optional.empty();
         }
 
-        return new WorldPosition(split[0], Double.parseDouble(split[1]), Double.parseDouble(split[2]), Double.parseDouble(split[3]));
+        String[] split = string.split(":");
+
+        if (split.length != 4) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(new WorldPosition(split[0], Double.parseDouble(split[1]), Double.parseDouble(split[2]), Double.parseDouble(split[3])));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     private static int floor(double value) {
@@ -97,15 +107,7 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
     }
 
     public static WorldPosition decode(@NonNull String worldName, long packed) {
-        int x = (int)((packed >> 38) & 0x3FFFFFFL);
-        int z = (int)((packed >> 12) & 0x3FFFFFFL);
-        int y = (int)(packed & 0xFFF);
-
-        if (x >= 0x2000000) x -= 0x4000000;
-        if (z >= 0x2000000) z -= 0x4000000;
-        if (y >= 0x800) y -= 0x1000;
-
-        return new WorldPosition(worldName, x, y, z);
+        return new WorldPosition(worldName, LocationUtil.unpackX(packed), LocationUtil.unpackY(packed), LocationUtil.unpackZ(packed));
     }
 
     @Override

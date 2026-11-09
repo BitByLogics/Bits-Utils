@@ -1,34 +1,24 @@
 package net.bitbylogic.utils.trigger.impl;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import net.bitbylogic.utils.config.metadata.ConfiguredMetadata;
-import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.trigger.Trigger;
 import net.bitbylogic.utils.trigger.TriggerAction;
-import org.jetbrains.annotations.NotNull;
+import net.bitbylogic.utils.trigger.TriggerInstance;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-@Getter
 public abstract class SimpleTrigger implements Trigger {
 
-    private List<Trigger> children = new ArrayList<>();
+    private final List<Trigger> children = new CopyOnWriteArrayList<>();
 
     private final @NonNull String id;
 
-    private boolean repeatable;
-
-    @Setter(AccessLevel.PROTECTED)
-    private boolean deactivateChildren;
-
-    private boolean active;
-
-    private TriggerAction action;
+    private volatile boolean repeatable;
+    private volatile boolean deactivateChildren;
+    private volatile @Nullable TriggerAction action;
 
     protected SimpleTrigger(@NonNull String id, @NonNull ConfiguredMetadata metadata) {
         this.id = id;
@@ -38,40 +28,8 @@ public abstract class SimpleTrigger implements Trigger {
     }
 
     @Override
-    public void trigger(@NonNull Context context) {
-        if(!active) {
-            return;
-        }
-
-        if(action != null) {
-            action.onTrigger(context);
-        }
-
-        if(repeatable) {
-            return;
-        }
-
-        active = false;
-        onDeactivate(context);
-
-        if(!deactivateChildren) {
-            return;
-        }
-
-        children.forEach(trigger -> {
-            trigger.setActive(false);
-            trigger.onDeactivate(context);
-        });
-    }
-
-    @Override
-    public boolean isActive() {
-        return active;
-    }
-
-    @Override
-    public void setActive(boolean active) {
-        this.active = active;
+    public @NonNull String getId() {
+        return id;
     }
 
     @Override
@@ -79,7 +37,6 @@ public abstract class SimpleTrigger implements Trigger {
         return repeatable;
     }
 
-    @Override
     public void setRepeatable(boolean repeatable) {
         this.repeatable = repeatable;
     }
@@ -89,9 +46,17 @@ public abstract class SimpleTrigger implements Trigger {
         return deactivateChildren;
     }
 
+    protected void setDeactivateChildren(boolean deactivateChildren) {
+        this.deactivateChildren = deactivateChildren;
+    }
+
     @Override
-    public @NotNull List<Trigger> getChildren() {
-        return children;
+    public @NonNull List<Trigger> getChildren() {
+        return List.copyOf(children);
+    }
+
+    public void addChild(@NonNull Trigger child) {
+        children.add(child);
     }
 
     @Override
@@ -100,33 +65,13 @@ public abstract class SimpleTrigger implements Trigger {
     }
 
     @Override
-    public boolean equals(Object object) {
-        if (object == null || getClass() != object.getClass()) return false;
-        SimpleTrigger that = (SimpleTrigger) object;
-        return repeatable == that.repeatable && deactivateChildren == that.deactivateChildren &&
-                active == that.active && Objects.equals(children, that.children) &&
-                Objects.equals(id, that.id) && Objects.equals(action, that.action);
+    public @Nullable TriggerAction getAction() {
+        return action;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(children, id, repeatable, deactivateChildren, active, action);
-    }
-
-    @Override
-    public @NotNull Trigger clone() {
-        try {
-            SimpleTrigger cloned = (SimpleTrigger) super.clone();
-            cloned.children = new ArrayList<>();
-
-            for (Trigger child : this.children) {
-                cloned.children.add(child.clone());
-            }
-
-            return cloned;
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError("Trigger should be cloneable", e);
-        }
+    public @NonNull TriggerInstance createInstance() {
+        return new TriggerInstance(this);
     }
 
 }

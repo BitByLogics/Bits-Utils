@@ -1,45 +1,43 @@
 package net.bitbylogic.utils.action;
 
 import lombok.NonNull;
+import net.bitbylogic.utils.registry.IdRegistry;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public final class ActionRegistry {
 
-    private static final Map<String, Action> ACTIONS = new ConcurrentHashMap<>();
+    private static final IdRegistry<Action> ACTIONS = new IdRegistry<>();
 
-    // Prevent instantiation
     private ActionRegistry() {
 
     }
 
     public static void register(@NonNull Action action) {
-        ACTIONS.putIfAbsent(action.getId().toLowerCase(), action);
+        ACTIONS.register(action.getId(), action);
     }
 
     public static void register(@NonNull Action @NonNull... actions) {
         for (Action action : actions) {
-            ACTIONS.putIfAbsent(action.getId().toLowerCase(), action);
+            ACTIONS.register(action.getId(), action);
         }
     }
 
     public static void unregister(@NonNull String id) {
-        ACTIONS.remove(id.toLowerCase());
+        ACTIONS.unregister(id);
     }
 
     public static Optional<Action> get(@NonNull String id) {
-        return Optional.ofNullable(ACTIONS.get(id.toLowerCase()));
+        return ACTIONS.get(id);
     }
 
     public static Set<String> getIds() {
-        return Set.copyOf(ACTIONS.keySet());
+        return ACTIONS.ids();
     }
 
     public static boolean contains(@NonNull String id) {
-        return ACTIONS.containsKey(id.toLowerCase());
+        return ACTIONS.contains(id);
     }
 
     public static void clear() {

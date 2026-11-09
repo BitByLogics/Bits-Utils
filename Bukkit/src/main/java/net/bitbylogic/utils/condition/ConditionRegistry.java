@@ -2,43 +2,41 @@ package net.bitbylogic.utils.condition;
 
 import lombok.NonNull;
 import net.bitbylogic.utils.condition.type.impl.HasPermissionCondition;
+import net.bitbylogic.utils.registry.IdRegistry;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 public final class ConditionRegistry {
 
-    private static final Map<String, Condition> CONDITIONS = new HashMap<>();
+    private static final IdRegistry<Condition> CONDITIONS = new IdRegistry<>();
 
     static {
         register(new HasPermissionCondition());
     }
 
-    // Prevent instantiation
     private ConditionRegistry() {
 
     }
 
     public static void register(@NonNull Condition condition) {
-        CONDITIONS.putIfAbsent(condition.getId().toLowerCase(), condition);
+        CONDITIONS.register(condition.getId(), condition);
     }
 
     public static void unregister(@NonNull String id) {
-        CONDITIONS.remove(id.toLowerCase());
+        CONDITIONS.unregister(id);
     }
 
     public static Optional<Condition> get(@NonNull String id) {
-        return Optional.ofNullable(CONDITIONS.get(id.toLowerCase()));
+        return CONDITIONS.get(id);
     }
 
     public static Set<String> getIds() {
-        return CONDITIONS.keySet();
+        return CONDITIONS.ids();
     }
 
     public static boolean contains(@NonNull String id) {
-        return CONDITIONS.containsKey(id.toLowerCase());
+        return CONDITIONS.contains(id);
     }
 
     public static void clear() {

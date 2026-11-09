@@ -2,7 +2,6 @@ package net.bitbylogic.utils.action.impl;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.bitbylogic.utils.action.Action;
 import net.bitbylogic.utils.action.ConfiguredMetadataActionData;
 import net.bitbylogic.utils.action.data.ActionData;
@@ -11,6 +10,7 @@ import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.context.DefaultContextKeys;
 import net.bitbylogic.utils.context.BukkitContextKeys;
 import net.bitbylogic.utils.message.MessageUtil;
+import net.bitbylogic.utils.message.PlaceholderUtil;
 import org.bukkit.entity.Player;
 
 @NoArgsConstructor
@@ -39,7 +39,7 @@ public class PlayerMessageAction implements Action {
             return false;
         }
 
-        player.sendMessage(MessageUtil.deserialize(PlaceholderAPI.setPlaceholders(player, message.replace("%player%", player.getName()))));
+        player.sendMessage(MessageUtil.deserialize(PlaceholderUtil.apply(player, message)));
         return true;
     }
 

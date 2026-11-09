@@ -21,29 +21,14 @@ public class ObjectReference<K, O> {
 
     private volatile @Nullable O cachedObject;
 
-    /**
-     * Attempts to resolve and return the referenced object.
-     * If a cached instance exists but differs from the resolved one,
-     * the cache is updated.
-     */
     public Optional<O> get() {
-        O resolved = resolver.resolve(id).orElse(null);
-        if (resolved == null) {
-            return Optional.empty();
+        O cached = cachedObject;
+
+        if (cached != null) {
+            return Optional.of(cached);
         }
 
-        O localCache = cachedObject;
-
-        // Refresh if cache is empty OR stale
-        if (localCache == null || localCache != resolved) {
-            synchronized (this) {
-                if (cachedObject == null || cachedObject != resolved) {
-                    cachedObject = resolved;
-                }
-            }
-        }
-
-        return Optional.of(resolved);
+        return refresh();
     }
 
     /**

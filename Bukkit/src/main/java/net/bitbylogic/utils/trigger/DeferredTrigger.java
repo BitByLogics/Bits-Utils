@@ -2,63 +2,60 @@ package net.bitbylogic.utils.trigger;
 
 import lombok.NonNull;
 import net.bitbylogic.utils.config.metadata.ConfiguredMetadata;
-import net.bitbylogic.utils.context.Context;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
+import java.util.logging.Logger;
 
-/**
- * A placeholder trigger that resolves its actual implementation lazily
- * via the TriggerRegistry. Supports callbacks when the delegate becomes available.
- */
 public class DeferredTrigger implements Trigger {
+
+    private static final Logger LOGGER = Logger.getLogger(DeferredTrigger.class.getName());
+
+    private final Object lock = new Object();
 
     private final String targetId;
     private final ConfiguredMetadata metadata;
 
     private volatile @Nullable Trigger delegate;
-
-    private final List<Consumer<Trigger>> whenAvailableCallbacks = new CopyOnWriteArrayList<>();
+    private volatile @Nullable TriggerAction action;
 
     public DeferredTrigger(@NonNull String targetId, @NonNull ConfiguredMetadata metadata) {
         this.targetId = targetId;
         this.metadata = metadata;
     }
 
-    private synchronized Trigger resolve() {
-        if (delegate == null) {
-            Optional<Trigger> provided = TriggerRegistry.get(targetId)
-                    .map(provider -> provider.provide(metadata));
+    public Optional<Trigger> resolve() {
+        Trigger resolved = delegate;
 
-            if (provided.isEmpty()) {
-                throw new IllegalStateException("Could not resolve trigger: " + targetId);
-            }
-
-            delegate = provided.get();
-
-            for (Consumer<Trigger> callback : whenAvailableCallbacks) {
-                callback.accept(delegate);
-            }
-
-            whenAvailableCallbacks.clear();
-        }
-        return delegate;
-    }
-
-    /**
-     * Registers a callback to run when the delegate trigger becomes available.
-     * If already resolved, the callback runs immediately.
-     */
-    public void whenAvailable(@NonNull Consumer<Trigger> callback) {
-        if(delegate != null) {
-            callback.accept(delegate);
-            return;
+        if (resolved != null) {
+            return Optional.of(resolved);
         }
 
-        whenAvailableCallbacks.add(callback);
+        synchronized (lock) {
+            if (delegate != null) {
+                return Optional.of(delegate);
+            }
+
+            Optional<TriggerProvider> provider = TriggerRegistry.get(targetId);
+
+            if (provider.isEmpty()) {
+                return Optional.empty();
+            }
+
+            Trigger provided = provider.get().provide(metadata);
+
+            if (provided == null) {
+                return Optional.empty();
+            }
+
+            if (action != null) {
+                provided.setAction(action);
+            }
+
+            delegate = provided;
+            return Optional.of(provided);
+        }
     }
 
     @Override
@@ -67,64 +64,59 @@ public class DeferredTrigger implements Trigger {
     }
 
     @Override
-    public boolean isActive() {
-        return resolve().isActive();
-    }
-
-    @Override
-    public void setActive(boolean active) {
-        resolve().setActive(active);
-    }
-
-    @Override
     public boolean isRepeatable() {
-        return resolve().isRepeatable();
-    }
-
-    @Override
-    public void setRepeatable(boolean repeatable) {
-        resolve().setRepeatable(repeatable);
+        return resolve().map(Trigger::isRepeatable).orElse(false);
     }
 
     @Override
     public boolean isDeactivateChildren() {
-        return resolve().isDeactivateChildren();
+        return resolve().map(Trigger::isDeactivateChildren).orElse(false);
     }
 
     @Override
     public @NonNull List<Trigger> getChildren() {
-        return resolve().getChildren();
+        return resolve().map(Trigger::getChildren).orElse(List.of());
     }
 
     @Override
     public void setAction(@NonNull TriggerAction action) {
-        resolve().setAction(action);
+        synchronized (lock) {
+            this.action = action;
+
+            if (delegate != null) {
+                delegate.setAction(action);
+            }
+        }
     }
 
     @Override
     public @Nullable TriggerAction getAction() {
-        return resolve().getAction();
+        return action;
     }
 
     @Override
-    public void trigger(@NonNull Context context) {
-        resolve().trigger(context);
-    }
+    public @NonNull TriggerInstance createInstance() {
+        Optional<Trigger> resolved = resolve();
 
-    @Override
-    public void onDeactivate(@NonNull Context context) {
-        resolve().onDeactivate(context);
-    }
-
-    @Override
-    public @NonNull Trigger clone() {
-        DeferredTrigger cloned = new DeferredTrigger(targetId, metadata);
-
-        if (delegate != null) {
-            cloned.delegate = delegate.clone();
+        if (resolved.isPresent()) {
+            return resolved.get().createInstance();
         }
 
-        return cloned;
+        LOGGER.warning("Could not resolve trigger '" + targetId + "', the instance will never fire.");
+        return new InertTriggerInstance(this);
+    }
+
+    private static final class InertTriggerInstance extends TriggerInstance {
+
+        private InertTriggerInstance(Trigger trigger) {
+            super(trigger);
+        }
+
+        @Override
+        public void activate() {
+
+        }
+
     }
 
 }

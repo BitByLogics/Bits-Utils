@@ -3,39 +3,37 @@ package net.bitbylogic.utils.context.registry;
 import lombok.NonNull;
 import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.context.ContextKey;
+import net.bitbylogic.utils.context.DefaultContextKeys;
+import net.bitbylogic.utils.registry.IdRegistry;
 
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ContextRegistry {
 
-    private static final Map<String, ContextKey<?>> KEY_REGISTRY = new ConcurrentHashMap<>();
+    private static final IdRegistry<ContextKey<?>> KEY_REGISTRY = new IdRegistry<>();
 
-    public static <T> void register(@NonNull ContextKey<T> key) {
-        if(KEY_REGISTRY.containsKey(key.getId().toLowerCase())) {
-            return;
-        }
+    static {
+        register(DefaultContextKeys.ACTION_DATA);
+        register(DefaultContextKeys.LOCALE);
+    }
 
-        KEY_REGISTRY.putIfAbsent(key.getId().toLowerCase(), key);
+    public static <T> boolean register(@NonNull ContextKey<T> key) {
+        return KEY_REGISTRY.register(key.getId(), key);
     }
 
     public static void unregister(@NonNull String id) {
-        KEY_REGISTRY.remove(id.toLowerCase());
+        KEY_REGISTRY.unregister(id);
     }
 
     @SuppressWarnings("unchecked")
     public static <T> Optional<ContextKey<T>> get(@NonNull String id) {
-        try {
-            return Optional.ofNullable((ContextKey<T>) KEY_REGISTRY.get(id.toLowerCase()));
-        } catch (ClassCastException e) {
-            return Optional.empty();
-        }
+        return KEY_REGISTRY.get(id).map(key -> (ContextKey<T>) key);
     }
 
     @SuppressWarnings("unchecked")
     public static <T> Optional<ContextKey<T>> get(@NonNull String id, @NonNull Class<T> type) {
-        ContextKey<?> key = KEY_REGISTRY.get(id.toLowerCase());
+        ContextKey<?> key = KEY_REGISTRY.get(id).orElse(null);
 
         if (key == null || !type.isAssignableFrom(key.getRawType())) {
             return Optional.empty();

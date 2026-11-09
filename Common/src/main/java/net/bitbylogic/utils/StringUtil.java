@@ -2,6 +2,7 @@ package net.bitbylogic.utils;
 
 import lombok.NonNull;
 
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,17 +19,13 @@ public class StringUtil {
      * @return The joined array as a single String.
      */
     public static String join(int index, String[] array, String delimiter) {
-        if (index >= array.length) {
-            throw new IndexOutOfBoundsException("Specified index is greater than array length");
+        int start = Math.max(index, 0);
+
+        if (start >= array.length) {
+            return "";
         }
 
-        String[] newArray = new String[array.length - index];
-
-        for (int i = index; i < array.length; i++) {
-            newArray[i - index] = array[i];
-        }
-
-        return String.join(delimiter, newArray);
+        return String.join(delimiter, Arrays.copyOfRange(array, start, array.length));
     }
 
     /**
@@ -54,9 +51,12 @@ public class StringUtil {
      * @return A long of time in seconds
      */
     public static long calculateReadingTime(String string, int readingSpeed) {
-        double numberOfWords = string.split(" ").length;
-        double readingTime = (numberOfWords / readingSpeed);
-        return (long) (readingTime * 1000);
+        if (readingSpeed <= 0 || string.isBlank()) {
+            return 0;
+        }
+
+        double numberOfWords = string.trim().split("\s+").length;
+        return (long) Math.ceil(numberOfWords / readingSpeed * 60);
     }
 
     public static String replace(@NonNull String message, Object... replacements) {

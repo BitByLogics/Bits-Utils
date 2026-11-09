@@ -2,7 +2,6 @@ package net.bitbylogic.utils.action.impl;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.bitbylogic.utils.action.Action;
 import net.bitbylogic.utils.action.ConfiguredMetadataActionData;
 import net.bitbylogic.utils.action.data.ActionData;
@@ -10,6 +9,7 @@ import net.bitbylogic.utils.action.data.StringActionData;
 import net.bitbylogic.utils.context.BukkitContextKeys;
 import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.context.DefaultContextKeys;
+import net.bitbylogic.utils.message.PlaceholderUtil;
 import org.bukkit.entity.Player;
 
 @NoArgsConstructor
@@ -38,7 +38,7 @@ public class PlayerCommandAction implements Action {
             return false;
         }
 
-        String finalCommand = PlaceholderAPI.setPlaceholders(player, command.replace("%player%", player.getName()));
+        String finalCommand = PlaceholderUtil.apply(player, command);
 
         player.performCommand(finalCommand);
         return true;

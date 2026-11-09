@@ -8,6 +8,7 @@ import org.bukkit.World;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 
 public record ChunkPosition(@NonNull String world, int x, int z) {
@@ -31,9 +32,9 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
      *
      * @throws IllegalArgumentException if worlds differ
      */
-    public double distance(@NonNull ChunkPosition chunk) {
+    public OptionalDouble distance(@NonNull ChunkPosition chunk) {
         if (!this.world.equals(chunk.world)) {
-            throw new IllegalArgumentException("Cannot compare chunks in different worlds");
+            return OptionalDouble.empty();
         }
 
         double thisCenterX = (this.x << 4) + 8;
@@ -44,7 +45,7 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
         double dx = thisCenterX - otherCenterX;
         double dz = thisCenterZ - otherCenterZ;
 
-        return Math.sqrt(dx * dx + dz * dz) / 16.0;
+        return OptionalDouble.of(Math.sqrt(dx * dx + dz * dz) / 16.0);
     }
 
     /**
@@ -68,7 +69,7 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
                         this.z + dz
                 );
 
-                if (distance(chunk) > radius) {
+                if (distance(chunk).orElse(Double.MAX_VALUE) > radius) {
                     continue;
                 }
 
@@ -84,12 +85,8 @@ public record ChunkPosition(@NonNull String world, int x, int z) {
     }
 
     public static ChunkPosition decodeChunk(@NonNull String worldName, long packed) {
-        int x = (int)(packed >> 32);
-        int z = (int)(packed & 0xFFFFFFFFL);
-
-        return new ChunkPosition(worldName, x, z);
+        return new ChunkPosition(worldName, LocationUtil.unpackChunkX(packed), LocationUtil.unpackChunkZ(packed));
     }
-
 
     @Override
     public boolean equals(Object o) {

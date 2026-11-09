@@ -1,8 +1,6 @@
 package net.bitbylogic.utils.trigger;
 
-import lombok.NonNull;
 import net.bitbylogic.utils.config.metadata.ConfiguredMetadata;
-import net.bitbylogic.utils.context.Context;
 import net.bitbylogic.utils.trigger.impl.SimpleTrigger;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.junit.jupiter.api.AfterEach;
@@ -11,7 +9,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
@@ -21,10 +21,6 @@ class TriggerParserTest {
 
         TestTrigger(String id, ConfiguredMetadata metadata) {
             super(id, metadata);
-        }
-
-        @Override
-        public void onDeactivate(@NonNull Context context) {
         }
 
     }
@@ -72,6 +68,22 @@ class TriggerParserTest {
         TriggerRegistry.register("parser_deferred", metadata -> new TestTrigger("parser_deferred", metadata));
 
         assertSame(action, triggers.getFirst().getAction());
+
+        TriggerInstance instance = triggers.getFirst().createInstance();
+        instance.activate();
+
+        assertSame(action, instance.getTrigger().getAction());
+        assertTrue(instance.isActive());
+    }
+
+    @Test
+    void unresolvedDeferredTriggerCreatesAnInertInstance() {
+        List<Trigger> triggers = TriggerParser.loadTriggers(sectionFor("parser_deferred"), action);
+
+        TriggerInstance instance = triggers.getFirst().createInstance();
+        instance.activate();
+
+        assertFalse(instance.isActive());
     }
 
 }

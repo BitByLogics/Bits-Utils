@@ -17,6 +17,10 @@ public class ProgressBar {
     }
 
     public static Component create(int length, int progress, String prefix, String suffix, TagResolver.Single... placeholders) {
+        if (ProgressBarMessages.SYMBOL == null) {
+            return Component.empty();
+        }
+
         Context context = ContextBuilder.create().build();
 
         Component symbol = ProgressBarMessages.SYMBOL.get(context, placeholders);
@@ -32,7 +36,7 @@ public class ProgressBar {
         result = result.append(progressColor);
 
         for (int i = 0; i < length; i++) {
-            result = result.append(symbol.style(i <= progress ? progressColor.style() : defaultColor.style()));
+            result = result.append(symbol.style(i < progress ? progressColor.style() : defaultColor.style()));
         }
 
         if (suffix != null && !suffix.isEmpty()) {

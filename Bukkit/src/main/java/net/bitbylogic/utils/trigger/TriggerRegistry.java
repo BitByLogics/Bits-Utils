@@ -1,6 +1,7 @@
 package net.bitbylogic.utils.trigger;
 
 import lombok.NonNull;
+import net.bitbylogic.utils.registry.IdRegistry;
 import net.bitbylogic.utils.trigger.impl.event.PlayerChatTrigger;
 
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.function.Consumer;
 
 public final class TriggerRegistry {
 
-    private static final Map<String, TriggerProvider> PROVIDERS = new ConcurrentHashMap<>();
+    private static final IdRegistry<TriggerProvider> PROVIDERS = new IdRegistry<>();
     private static final Map<String, List<Consumer<TriggerProvider>>> PENDING_TRIGGERS = new ConcurrentHashMap<>();
 
     static {
@@ -27,7 +28,7 @@ public final class TriggerRegistry {
     public static void register(@NonNull String id, @NonNull TriggerProvider provider) {
         String loweredId = id.toLowerCase();
 
-        if (PROVIDERS.putIfAbsent(loweredId, provider) != null) {
+        if (!PROVIDERS.register(loweredId, provider)) {
             throw new IllegalArgumentException("Trigger with ID '" + id + "' already registered");
         }
 
@@ -41,19 +42,19 @@ public final class TriggerRegistry {
     }
 
     public static void unregister(@NonNull String id) {
-        PROVIDERS.remove(id.toLowerCase());
+        PROVIDERS.unregister(id);
     }
 
     public static Optional<TriggerProvider> get(@NonNull String id) {
-        return Optional.ofNullable(PROVIDERS.get(id.toLowerCase()));
+        return PROVIDERS.get(id);
     }
 
     public static Set<String> getIds() {
-        return Set.copyOf(PROVIDERS.keySet());
+        return PROVIDERS.ids();
     }
 
     public static boolean contains(@NonNull String id) {
-        return PROVIDERS.containsKey(id.toLowerCase());
+        return PROVIDERS.contains(id);
     }
 
     public static void clear() {
@@ -62,10 +63,10 @@ public final class TriggerRegistry {
 
     public static void whenAvailable(@NonNull String id, @NonNull Consumer<TriggerProvider> consumer) {
         String loweredId = id.toLowerCase();
-        TriggerProvider existingProvider = PROVIDERS.get(loweredId);
+        Optional<TriggerProvider> existingProvider = PROVIDERS.get(loweredId);
 
-        if (existingProvider != null) {
-            consumer.accept(existingProvider);
+        if (existingProvider.isPresent()) {
+            consumer.accept(existingProvider.get());
             return;
         }
 

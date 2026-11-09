@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import lombok.NonNull;
 import net.bitbylogic.utils.message.MessageUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -19,7 +20,6 @@ import org.jetbrains.annotations.NotNull;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -36,11 +36,17 @@ public class ItemBuilder {
         return new ItemBuilder(new ItemStack(material));
     }
 
-    public static ItemBuilder from(@NotNull ItemStack item) { return new ItemBuilder(item); }
+    public static ItemBuilder from(@NotNull ItemStack item) {
+        return new ItemBuilder(item.clone());
+    }
+
+    private static Component withoutDefaultItalic(Component component) {
+        return component.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+    }
 
     public ItemBuilder name(@NotNull String name) {
         ItemMeta stackMeta = item.getItemMeta();
-        stackMeta.displayName(MessageUtil.deserialize(name));
+        stackMeta.displayName(withoutDefaultItalic(MessageUtil.deserialize(name)));
         item.setItemMeta(stackMeta);
         return this;
     }
@@ -53,7 +59,11 @@ public class ItemBuilder {
     public ItemBuilder lore(@NotNull Component... lore) {
         ItemMeta meta = item.getItemMeta();
 
-        List<Component> newLore = new ArrayList<>(Arrays.asList(lore));
+        List<Component> newLore = new ArrayList<>();
+
+        for (Component loreLine : lore) {
+            newLore.add(withoutDefaultItalic(loreLine));
+        }
 
         meta.lore(newLore);
         this.item.setItemMeta(meta);
@@ -65,7 +75,7 @@ public class ItemBuilder {
         List<Component> newLore = new ArrayList<>();
 
         for (String loreLine : lore) {
-            newLore.add(MessageUtil.deserialize(loreLine));
+            newLore.add(withoutDefaultItalic(MessageUtil.deserialize(loreLine)));
         }
 
         meta.lore(newLore);
@@ -78,7 +88,7 @@ public class ItemBuilder {
         List<Component> newLore = new ArrayList<>();
 
         for (String loreLine : lore) {
-            newLore.add(MessageUtil.deserialize(loreLine));
+            newLore.add(withoutDefaultItalic(MessageUtil.deserialize(loreLine)));
         }
 
         meta.lore(newLore);

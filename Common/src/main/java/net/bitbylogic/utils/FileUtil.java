@@ -1,6 +1,7 @@
 package net.bitbylogic.utils;
 
 import java.io.File;
+import java.nio.file.Files;
 
 public class FileUtil {
 
@@ -9,7 +10,11 @@ public class FileUtil {
             return;
         }
 
-        File[] contents = directory.listFiles();
+        File[] contents = null;
+
+        if (!Files.isSymbolicLink(directory.toPath())) {
+            contents = directory.listFiles();
+        }
 
         if (contents != null) {
             for (File file : contents) {

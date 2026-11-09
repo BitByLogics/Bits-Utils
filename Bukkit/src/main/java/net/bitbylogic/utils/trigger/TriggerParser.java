@@ -65,7 +65,7 @@ public class TriggerParser {
         DeferredTrigger deferredTrigger = new DeferredTrigger(id, metadata);
 
         if (action != null) {
-            deferredTrigger.whenAvailable(trigger -> trigger.setAction(action));
+            deferredTrigger.setAction(action);
         }
 
         return Optional.of(deferredTrigger);

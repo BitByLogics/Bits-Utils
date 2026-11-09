@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.joml.Vector3f;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Getter
@@ -16,14 +17,18 @@ public class OffsetLocation {
     private final double yOffset;
     private final double zOffset;
 
-    public static OffsetLocation fromString(@NonNull String string) {
+    public static Optional<OffsetLocation> parse(@NonNull String string) {
         String[] data = string.split(":");
 
         if (data.length < 3) {
-            return new OffsetLocation(0, 0, 0);
+            return Optional.empty();
         }
 
-        return new OffsetLocation(Double.parseDouble(data[0]), Double.parseDouble(data[1]), Double.parseDouble(data[2]));
+        try {
+            return Optional.of(new OffsetLocation(Double.parseDouble(data[0]), Double.parseDouble(data[1]), Double.parseDouble(data[2])));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     public static @NonNull OffsetLocation of(@NonNull Location location) {

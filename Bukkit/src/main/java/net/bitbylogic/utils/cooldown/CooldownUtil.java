@@ -32,7 +32,9 @@ public class CooldownUtil {
         Cooldown cooldown = new Cooldown(identifier, key, unit.toMillis(expireTime));
         addCooldown(cooldown);
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        long delayTicks = Math.max(1, unit.toMillis(expireTime) / 50);
+
+        Bukkit.getGlobalRegionScheduler().runDelayed(plugin, task -> {
             removeCooldown(cooldown);
 
             if (completeCallback == null) {
@@ -40,7 +42,7 @@ public class CooldownUtil {
             }
 
             completeCallback.accept(null);
-        }, unit.toMillis(expireTime) / 50);
+        }, delayTicks);
     }
 
     public static void attemptRun(String key, UUID identifier, String cooldownTime, Runnable runnable) {

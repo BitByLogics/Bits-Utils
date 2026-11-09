@@ -2,7 +2,6 @@ package net.bitbylogic.utils.context;
 
 import lombok.Getter;
 import lombok.NonNull;
-import net.bitbylogic.utils.context.registry.ContextRegistry;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Type;
@@ -26,8 +25,6 @@ public final class ContextKey<T> {
         this.rawType = rawType;
         this.genericType = genericType;
         this.provider = provider;
-
-        ContextRegistry.register(this);
     }
 
     public ContextKey(@NonNull String id, @NonNull Class<T> rawType, @Nullable Function<Context, T> provider) {

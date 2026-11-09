@@ -18,9 +18,11 @@ public class Pair<K, V> {
 
     @Override
     public boolean equals(final Object o) {
-        if (o == null) return false;
-        if (!(o instanceof Pair<?, ?> pair)) return false;
-        return pair.getKey().equals(key) && pair.getValue().equals(value);
+        if (!(o instanceof Pair<?, ?> pair)) {
+            return false;
+        }
+
+        return Objects.equals(pair.getKey(), key) && Objects.equals(pair.getValue(), value);
     }
 
     @Override

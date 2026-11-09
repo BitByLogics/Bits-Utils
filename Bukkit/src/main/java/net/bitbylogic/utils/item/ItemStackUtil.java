@@ -8,18 +8,13 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
-import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.EntityType;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
@@ -27,7 +22,6 @@ import java.util.function.Function;
 public class ItemStackUtil {
 
     private static final ItemStackConfigSerializer CONFIG_PARSER = new ItemStackConfigSerializer();
-    private static final NamespacedKey SPAWNER_KEY = new NamespacedKey("bitsutils", "bits_spawner");
     
     public static ItemStack getFromConfig(@NotNull ConfigurationSection section, TagResolver.Single... modifiers) {
         Optional<ItemStack> optionalItem = CONFIG_PARSER.deserialize(section, modifiers);
@@ -118,9 +112,13 @@ public class ItemStackUtil {
     }
 
     public static void setLore(@NotNull ItemMeta meta, @NotNull List<Component> lore) {
-        lore.replaceAll(component -> component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+        List<Component> updated = new ArrayList<>(lore.size());
 
-        meta.lore(lore);
+        for (Component component : lore) {
+            updated.add(component.compact().style(style -> style.decoration(TextDecoration.ITALIC, false)));
+        }
+
+        meta.lore(updated);
     }
 
     public static void updateLore(@NotNull ItemMeta meta, @NotNull Map<String, Component> placeholders) {
@@ -184,141 +182,6 @@ public class ItemStackUtil {
         }
 
         return lore;
-    }
-
-    public static boolean isSimilar(ItemStack item, ItemStack otherItem, boolean compareFlags, boolean compareName, boolean compareLore) {
-        if (item == null || otherItem == null) return false;
-        if (item.getType() != otherItem.getType()) return false;
-
-        ItemMeta meta = item.getItemMeta();
-        ItemMeta otherMeta = otherItem.getItemMeta();
-
-        if (compareFlags && !flagsMatch(item, otherItem)) {
-            return false;
-        }
-
-        // Compare display name
-        if (compareName) {
-            String name = (meta != null && meta.hasDisplayName()) ? meta.getDisplayName() : null;
-            String otherName = (otherMeta != null && otherMeta.hasDisplayName()) ? otherMeta.getDisplayName() : null;
-
-            if (!Objects.equals(name, otherName)) {
-                return false;
-            }
-        }
-
-        if (compareLore) {
-            return loreMatches(item, otherItem);
-        }
-
-        return true;
-    }
-
-    public static boolean flagsMatch(ItemStack item, ItemStack otherItem) {
-        ItemMeta meta = item.getItemMeta();
-        ItemMeta otherMeta = otherItem.getItemMeta();
-
-        Set<ItemFlag> itemFlags = meta == null ? Collections.emptySet() : meta.getItemFlags();
-        Set<ItemFlag> otherItemFlags = otherMeta == null ? Collections.emptySet() : otherMeta.getItemFlags();
-
-        return itemFlags.equals(otherItemFlags);
-    }
-
-    /**
-     * Check whether two ItemStack's lore matches.
-     *
-     * @param item      ItemStack to compare.
-     * @param otherItem The ItemStack to compare it to.
-     * @return Whether the lore matches.
-     */
-    public static boolean loreMatches(ItemStack item, ItemStack otherItem) {
-        if (item.getItemMeta() == null && otherItem.getItemMeta() == null) {
-            return true;
-        }
-
-        if (item.getItemMeta() == null || otherItem.getItemMeta() == null) {
-            return false;
-        }
-
-        if (item.getItemMeta().hasLore() != otherItem.getItemMeta().hasLore()) {
-            return false;
-        }
-
-        List<String> itemLore = item.getItemMeta().getLore();
-        List<String> otherItemLore = otherItem.getItemMeta().getLore();
-
-        if (itemLore == null && otherItemLore == null) {
-            return true;
-        }
-
-        if (itemLore == null || otherItemLore == null) {
-            return false;
-        }
-
-        return itemLore.equals(otherItemLore);
-    }
-
-    /**
-     * Check whether a spawner item's spawn
-     * type matches another spawner's type.
-     *
-     * @param item      ItemStack to compare.
-     * @param otherItem The ItemStack to compare it to.
-     * @return Whether the spawn type matches.
-     */
-    public static boolean spawnerMatches(ItemStack item, ItemStack otherItem) {
-        if (item.getType() != Material.SPAWNER || otherItem.getType() != Material.SPAWNER) {
-            return false;
-        }
-
-        BlockStateMeta meta = (BlockStateMeta) item.getItemMeta();
-        BlockStateMeta otherMeta = (BlockStateMeta) otherItem.getItemMeta();
-
-        if (meta == null || otherMeta == null) {
-            return false;
-        }
-
-        return ((CreatureSpawner) meta.getBlockState()).getSpawnedType() == ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType();
-    }
-
-    public static ItemStack getSpawner(@NotNull EntityType entityType, @Nullable String name) {
-        ItemStack item = new ItemStack(Material.SPAWNER);
-        ItemMeta meta = item.getItemMeta();
-
-        if (name != null) {
-            meta.displayName(MessageUtil.deserialize(name));
-        }
-
-        meta.getPersistentDataContainer().set(SPAWNER_KEY, PersistentDataType.STRING, entityType.name());
-
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    public static ItemStack setSpawner(@NotNull ItemStack item, @NotNull EntityType entityType) {
-        ItemMeta meta = item.getItemMeta();
-        meta.getPersistentDataContainer().set(SPAWNER_KEY, PersistentDataType.STRING, entityType.name());
-
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    public static boolean isSpawner(@NotNull ItemStack item) {
-        return item.getItemMeta().getPersistentDataContainer().has(SPAWNER_KEY, PersistentDataType.STRING);
-    }
-
-    public static EntityType getSpawnerEntity(@NotNull ItemStack item) {
-        if (!isSpawner(item)) {
-            return null;
-        }
-
-        String entityName = item.getItemMeta().getPersistentDataContainer().get(SPAWNER_KEY, PersistentDataType.STRING);
-
-        try {
-            return EntityType.valueOf(entityName);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
     }
 
     public static <P, C> void addPersistentData(@NotNull ItemStack item, @NotNull NamespacedKey key, @NotNull PersistentDataType<P, C> dataType, C value) {

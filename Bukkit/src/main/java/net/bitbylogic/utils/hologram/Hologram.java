@@ -1,37 +1,30 @@
 package net.bitbylogic.utils.hologram;
 
 import lombok.NonNull;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3f;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Hologram {
 
-    private static final NamespacedKey HOLOGRAM_KEY = new NamespacedKey("bitsutils", "hologram");
+    static final NamespacedKey HOLOGRAM_KEY = new NamespacedKey("bitsutils", "hologram");
 
-    private final List<HologramLine<?, ?>> lines = new ArrayList<>();
+    private final List<HologramLine<?, ?>> lines = new CopyOnWriteArrayList<>();
 
-    private float lineSpacing = 0.17f;
+    private volatile float lineSpacing = 0.17f;
 
-    private boolean persistent;
-    private boolean global = true;
+    private volatile boolean persistent;
+    private volatile boolean global = true;
 
-    private Location location;
-
-    private int taskId = -1;
+    private volatile @Nullable JavaPlugin plugin;
 
     public Hologram(@NonNull HologramLine<?, ?> hologramLine) {
         this.lines.add(hologramLine);
@@ -39,6 +32,18 @@ public class Hologram {
 
     public List<HologramLine<?, ?>> getLines() {
         return List.copyOf(lines);
+    }
+
+    public float getLineSpacing() {
+        return lineSpacing;
+    }
+
+    public boolean isPersistent() {
+        return persistent;
+    }
+
+    public boolean isGlobal() {
+        return global;
     }
 
     public Hologram addLine(@NonNull HologramLine<?, ?> line) {
@@ -62,160 +67,20 @@ public class Hologram {
     }
 
     public Hologram schedule(@NonNull JavaPlugin plugin) {
-        if(taskId != -1) {
-            return this;
-        }
-
-        taskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (lines.isEmpty()) {
-                return;
-            }
-
-            boolean updated = false;
-
-            for (HologramLine<?, ?> hologramLine : lines) {
-                if (hologramLine.getLastUpdateTime() != 0 &&
-                        System.currentTimeMillis() - hologramLine.getLastUpdateTime() < hologramLine.getUpdateInterval()) {
-                    continue;
-                }
-
-                hologramLine.setLastUpdateTime(System.currentTimeMillis());
-                hologramLine.updateData();
-                updated = true;
-            }
-
-            if (!updated) {
-                return;
-            }
-
-            updateSpacing();
-        }, 0, 1).getTaskId();
+        this.plugin = plugin;
         return this;
     }
 
-    public void spawn(@NonNull Location location) {
-        spawn(location, null, new ArrayList<>());
+    public HologramInstance spawn(@NonNull Location location) {
+        return new HologramInstance(this, location, plugin, List.of());
     }
 
-    public void spawn(@NonNull Location location, @Nullable JavaPlugin plugin, @NonNull List<Player> viewers) {
-        this.location = location;
-
-        Display display = null;
-
-        List<HologramLine<?, ?>> sortedLines = new ArrayList<>(lines);
-        sortedLines = sortedLines.reversed();
-
-        for(int i = 0; i < sortedLines.size(); i++) {
-            HologramLine<?, ?> line = sortedLines.get(i);
-
-            if (display != null) {
-                Display lineDisplay = line.build(location, persistent, global);
-                lineDisplay.getPersistentDataContainer().set(HOLOGRAM_KEY, PersistentDataType.BOOLEAN, true);
-
-                Transformation transformation = lineDisplay.getTransformation();
-
-                if(line.isApplyLineSpacing()) {
-                    transformation.getTranslation().add(0, transformation.getTranslation().y + (lineSpacing * i), 0);
-                }
-
-                line.setLineOffset(new Vector3f(transformation.getTranslation()));
-                lineDisplay.setTransformation(transformation);
-
-                if (!global && plugin != null) {
-                    viewers.forEach(player -> player.showEntity(plugin, lineDisplay));
-                }
-
-                display = lineDisplay;
-                continue;
-            }
-
-            display = line.build(location, persistent, global);
-            display.getPersistentDataContainer().set(HOLOGRAM_KEY, PersistentDataType.BOOLEAN, true);
-
-            if (!global && plugin != null) {
-                Display finalDisplay = display;
-                viewers.forEach(player -> player.showEntity(plugin, finalDisplay));
-            }
-        }
-    }
-
-    public void teleport(@NonNull Location location) {
-        for (HologramLine<?, ?> line : lines) {
-            if (line.getDisplay() == null) {
-                continue;
-            }
-
-            line.getDisplay().teleport(location);
-        }
-    }
-
-    public void updateSpacing() {
-        List<HologramLine<?, ?>> sortedLines = new ArrayList<>(lines);
-        sortedLines = sortedLines.reversed();
-
-        float currentY = 0f;
-
-        for (HologramLine<?, ?> line : sortedLines) {
-            if (line.getDisplay() == null && location != null) {
-                line.build(location, persistent, global);
-            }
-
-            if (line.getDisplay() == null || !line.isApplyLineSpacing()) {
-                continue;
-            }
-
-            Display display = line.getDisplay();
-            Transformation transformation = display.getTransformation();
-
-            int lineCount = 1;
-
-            if (display instanceof TextDisplay textDisplay) {
-                String text = Objects.requireNonNullElse(textDisplay.getText(), "");
-                lineCount = text.split("\n").length;
-            }
-
-            transformation.getTranslation().set(0, currentY, 0);
-            display.setTransformation(transformation);
-
-            line.setLineOffset(new Vector3f(transformation.getTranslation()));
-
-            currentY += lineSpacing * lineCount;
-        }
-    }
-
-    public boolean cleanup() {
-        if(taskId != -1) {
-            Bukkit.getScheduler().cancelTask(taskId);
-        }
-
-        if (lines.isEmpty()) {
-            return false;
-        }
-
-        lines.stream()
-                .filter(hologramLine -> hologramLine.getDisplay() != null)
-                .forEach(hologramLine -> hologramLine.getDisplay().remove());
-        return true;
+    public HologramInstance spawn(@NonNull Location location, @NonNull JavaPlugin plugin, @NonNull List<Player> viewers) {
+        return new HologramInstance(this, location, plugin, List.copyOf(viewers));
     }
 
     public Optional<HologramLine<?, ?>> getLine(@NonNull String id) {
         return lines.stream().filter(line -> line.getId().equalsIgnoreCase(id)).findFirst();
-    }
-
-    public Optional<Display> getTop() {
-        if (lines.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Optional.ofNullable(lines.getLast().getDisplay());
-    }
-
-    public Optional<Display> getBase() {
-        if (lines.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Optional.ofNullable(lines.getFirst().getDisplay());
     }
 
     public static boolean isHologram(@NonNull Display display) {
