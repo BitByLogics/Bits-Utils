@@ -33,10 +33,9 @@
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
 
-        <!-- JitPack -->
         <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
+            <id>minebit</id>
+            <url>https://repo.minebit.dev/releases</url>
         </repository>
 
         <!-- PlaceholderAPI -->
@@ -72,9 +71,9 @@
 
         <!-- Bit's RPS -->
         <dependency>
-            <groupId>com.github.bitbylogics</groupId>
-            <artifactId>Bits-RPS</artifactId>
-            <version>1.0.0</version>
+            <groupId>net.bitbylogic</groupId>
+            <artifactId>bits-rps</artifactId>
+            <version>1.2.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

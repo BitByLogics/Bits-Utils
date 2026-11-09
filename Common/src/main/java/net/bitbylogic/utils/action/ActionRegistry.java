@@ -17,10 +17,6 @@ public final class ActionRegistry {
     }
 
     public static void register(@NonNull Action action) {
-        if(ACTIONS.containsKey(action.getId().toLowerCase())) {
-            return;
-        }
-
         ACTIONS.putIfAbsent(action.getId().toLowerCase(), action);
     }
 
@@ -39,7 +35,7 @@ public final class ActionRegistry {
     }
 
     public static Set<String> getIds() {
-        return ACTIONS.keySet();
+        return Set.copyOf(ACTIONS.keySet());
     }
 
     public static boolean contains(@NonNull String id) {

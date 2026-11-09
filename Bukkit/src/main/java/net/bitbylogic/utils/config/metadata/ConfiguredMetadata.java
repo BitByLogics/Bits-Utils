@@ -121,7 +121,11 @@ public class ConfiguredMetadata {
         double min = metadataMap.getValueAsOrDefault(RANDOM_MIN_KEY, fallback);
         double max = metadataMap.getValueAsOrDefault(RANDOM_MAX_KEY, fallback);
 
-        return ThreadLocalRandom.current().nextDouble(min, max + 1);
+        if (max <= min) {
+            return min;
+        }
+
+        return ThreadLocalRandom.current().nextDouble(min, max);
     }
 
     public <T extends Enum<T>> T getEnum(@NonNull Class<T> enumClass, @NonNull String key, @NonNull T fallback) {

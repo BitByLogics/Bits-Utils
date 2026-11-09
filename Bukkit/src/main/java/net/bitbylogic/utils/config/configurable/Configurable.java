@@ -137,7 +137,7 @@ public class Configurable {
         try {
             config.save(configFile);
         } catch (IOException e) {
-            e.printStackTrace();
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to save config file " + configFile, e);
         }
     }
 
@@ -194,8 +194,7 @@ public class Configurable {
             try {
                 return (T) getConfigValue(path);
             } catch (ClassCastException e) {
-                Bukkit.getLogger().log(Level.SEVERE, "Unable to cast config value");
-                e.printStackTrace();
+                Bukkit.getLogger().log(Level.SEVERE, "Unable to cast config value " + path, e);
             }
 
             return defaultValue;
@@ -214,8 +213,7 @@ public class Configurable {
         try {
             return actualValue == null ? defaultValue : (T) actualValue;
         } catch (ClassCastException e) {
-            Bukkit.getLogger().log(Level.SEVERE, "Unable to cast config value");
-            e.printStackTrace();
+            Bukkit.getLogger().log(Level.SEVERE, "Unable to cast config value " + path, e);
         }
 
         return defaultValue;
@@ -231,7 +229,7 @@ public class Configurable {
         try {
             config.save(configFile);
         } catch (IOException e) {
-            e.printStackTrace();
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to save config file " + configFile, e);
         }
     }
 

@@ -90,7 +90,7 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
             }
 
             if(!(set.iterator().next() instanceof Enum<?>)) {
-                return List.of(set.stream().map(Object::toString).toList());
+                return set.stream().map(Object::toString).toList();
             }
 
             return set.stream()

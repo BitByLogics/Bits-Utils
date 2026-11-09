@@ -1,6 +1,5 @@
 package net.bitbylogic.utils.hologram;
 
-import lombok.Getter;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -23,7 +22,6 @@ public class Hologram {
 
     private static final NamespacedKey HOLOGRAM_KEY = new NamespacedKey("bitsutils", "hologram");
 
-    @Getter
     private final List<HologramLine<?, ?>> lines = new ArrayList<>();
 
     private float lineSpacing = 0.17f;
@@ -37,6 +35,10 @@ public class Hologram {
 
     public Hologram(@NonNull HologramLine<?, ?> hologramLine) {
         this.lines.add(hologramLine);
+    }
+
+    public List<HologramLine<?, ?>> getLines() {
+        return List.copyOf(lines);
     }
 
     public Hologram addLine(@NonNull HologramLine<?, ?> line) {
@@ -65,19 +67,28 @@ public class Hologram {
         }
 
         taskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (lines.isEmpty()) return;
+            if (lines.isEmpty()) {
+                return;
+            }
 
-            lines.forEach(hologramLine -> {
-                if(hologramLine.getLastUpdateTime() != 0 &&
+            boolean updated = false;
+
+            for (HologramLine<?, ?> hologramLine : lines) {
+                if (hologramLine.getLastUpdateTime() != 0 &&
                         System.currentTimeMillis() - hologramLine.getLastUpdateTime() < hologramLine.getUpdateInterval()) {
-                    return;
+                    continue;
                 }
 
                 hologramLine.setLastUpdateTime(System.currentTimeMillis());
                 hologramLine.updateData();
+                updated = true;
+            }
 
-                updateSpacing();
-            });
+            if (!updated) {
+                return;
+            }
+
+            updateSpacing();
         }, 0, 1).getTaskId();
         return this;
     }
@@ -192,11 +203,19 @@ public class Hologram {
     }
 
     public Optional<Display> getTop() {
-        return lines.isEmpty() ? Optional.empty() : Optional.of(lines.getLast().getDisplay());
+        if (lines.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(lines.getLast().getDisplay());
     }
 
     public Optional<Display> getBase() {
-        return lines.isEmpty() ? Optional.empty() : Optional.of(lines.getFirst().getDisplay());
+        if (lines.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(lines.getFirst().getDisplay());
     }
 
     public static boolean isHologram(@NonNull Display display) {

@@ -3,12 +3,14 @@ package net.bitbylogic.utils.config.configurable.wrapper.impl;
 import lombok.NonNull;
 import net.bitbylogic.utils.config.configurable.wrapper.ConfigWrapper;
 import net.bitbylogic.utils.item.ItemStackUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class DefaultConfigWrapper implements ConfigWrapper<Object> {
 
@@ -69,7 +71,7 @@ public class DefaultConfigWrapper implements ConfigWrapper<Object> {
 
                 return map;
             } catch (InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
+                Bukkit.getLogger().log(Level.SEVERE, "Failed to unwrap map of type " + requestedClass.getName(), e);
             }
 
             return null;

@@ -2,6 +2,7 @@ package net.bitbylogic.utils.message;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.bitbylogic.utils.message.tag.RomanModifyingTag;
 import net.bitbylogic.utils.message.tag.SmallCapsModifyingTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -18,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 // TODO: Add caching, improve this overall
 public class MessageUtil {
@@ -34,11 +36,11 @@ public class MessageUtil {
 
     private static final TagResolver ROMAN = TagResolver.resolver(
             "roman",
-            (aq, ctx) -> new SmallCapsModifyingTag()
+            (aq, ctx) -> new RomanModifyingTag()
     );
 
     @Getter
-    private static final List<TagResolver.Single> GLOBAL_PLACEHOLDERS = new ArrayList<>();
+    private static final List<TagResolver.Single> GLOBAL_PLACEHOLDERS = new CopyOnWriteArrayList<>();
 
     @Getter
     private static final Map<String, Long> MESSAGE_COOLDOWNS = new ConcurrentHashMap<>();

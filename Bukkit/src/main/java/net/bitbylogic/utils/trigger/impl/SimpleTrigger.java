@@ -17,7 +17,7 @@ import java.util.Objects;
 @Getter
 public abstract class SimpleTrigger implements Trigger {
 
-    private final List<Trigger> children = new ArrayList<>();
+    private List<Trigger> children = new ArrayList<>();
 
     private final @NonNull String id;
 
@@ -116,16 +116,11 @@ public abstract class SimpleTrigger implements Trigger {
     @Override
     public @NotNull Trigger clone() {
         try {
-            Trigger cloned = (Trigger) super.clone();
-
-            if(action != null) {
-                cloned.setAction(action);
-            }
-
-            cloned.getChildren().clear();
+            SimpleTrigger cloned = (SimpleTrigger) super.clone();
+            cloned.children = new ArrayList<>();
 
             for (Trigger child : this.children) {
-                cloned.getChildren().add(child.clone());
+                cloned.children.add(child.clone());
             }
 
             return cloned;

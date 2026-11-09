@@ -38,6 +38,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 
 public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
@@ -144,7 +145,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
             try {
                 textures.setSkin(URI.create(section.getString("Skull-URL")).toURL());
             } catch (MalformedURLException e) {
-                e.printStackTrace();
+                Bukkit.getLogger().log(Level.WARNING, "Invalid skull URL: " + section.getString("Skull-URL"), e);
             }
             skullProfile.setTextures(textures);
             skullMeta.setOwnerProfile(skullProfile);

@@ -10,10 +10,14 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Getter
 public class DependencyManager {
+
+    private static final Logger LOGGER = Logger.getLogger(DependencyManager.class.getName());
 
     private final Map<Class<?>, Object> dependencies;
     private final Map<Class<?>, List<Object>> missingDependencies;
@@ -22,7 +26,7 @@ public class DependencyManager {
     public DependencyManager() {
         this.dependencies = new ConcurrentHashMap<>();
         this.missingDependencies = new ConcurrentHashMap<>();
-        this.dependencyListeners = new ArrayList<>();
+        this.dependencyListeners = new CopyOnWriteArrayList<>();
 
         registerDependency(this.getClass(), this);
     }
@@ -33,6 +37,8 @@ public class DependencyManager {
         }
 
         dependencies.put(clazz, instance);
+
+        dependencyListeners.forEach(listener -> listener.onRegistered(clazz, instance));
 
         List<Object> pendingObjects = missingDependencies.remove(clazz);
 
@@ -54,7 +60,7 @@ public class DependencyManager {
             try {
                 method.invoke(object);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Failed to invoke dependency method " + method.getName(), e);
             }
         });
     }
@@ -102,7 +108,7 @@ public class DependencyManager {
         try {
             field.set(object, dependency);
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to inject dependency into " + field.getName(), e);
         } finally {
             if (!wasAccessible) {
                 field.setAccessible(false);

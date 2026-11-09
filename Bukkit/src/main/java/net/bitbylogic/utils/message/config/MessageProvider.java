@@ -34,6 +34,8 @@ public class MessageProvider {
                 memorySection = messageSection;
             }
         }
+
+        reload(memorySection);
     }
 
     public void reload(ConfigurationSection section) {

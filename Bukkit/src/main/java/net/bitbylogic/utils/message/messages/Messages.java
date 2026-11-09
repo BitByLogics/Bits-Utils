@@ -2,12 +2,14 @@ package net.bitbylogic.utils.message.messages;
 
 import lombok.NonNull;
 import net.bitbylogic.utils.message.progressbar.ProgressBarMessages;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
 
 public abstract class Messages {
 
@@ -77,22 +79,13 @@ public abstract class Messages {
                     if (valuesToSave.size() == 1) {
                         config.set(key.getPath(), valuesToSave.getFirst());
 
-                        try {
-                            config.save(localeConfig);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        saveLocale(config, localeConfig);
                         continue;
                     }
 
                     config.set(key.getPath(), valuesToSave);
 
-                    try {
-                        config.save(localeConfig);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
+                    saveLocale(config, localeConfig);
                     continue;
                 }
 
@@ -113,6 +106,14 @@ public abstract class Messages {
 
                 key.getValues(locale).add(value);
             }
+        }
+    }
+
+    private static void saveLocale(FileConfiguration config, File localeConfig) {
+        try {
+            config.save(localeConfig);
+        } catch (IOException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to save messages file " + localeConfig, e);
         }
     }
 
