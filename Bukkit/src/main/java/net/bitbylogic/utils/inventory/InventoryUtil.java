@@ -272,18 +272,9 @@ public class InventoryUtil {
             return 0;
         }
 
-        AtomicInteger currentSlot = new AtomicInteger(0);
-        Inventory testInv = Bukkit.createInventory(null, inventory instanceof PlayerInventory ? 36 : inventory.getSize());
-
-        ItemStack[] contents = inventory.getContents().clone();
-
-        Arrays.stream(contents).filter(Objects::nonNull).forEach(invItem -> {
-            ItemStack clonedItem = invItem.clone();
-            testInv.setItem(currentSlot.getAndIncrement(), clonedItem);
-        });
-
         int found = 0;
-        for (ItemStack item : testInv.getContents()) {
+
+        for (ItemStack item : inventory.getContents()) {
             if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
@@ -292,13 +283,11 @@ public class InventoryUtil {
                 continue;
             }
 
-            if (itemStack.getType() == Material.SPAWNER && ItemStackUtil.spawnerMatches(itemStack, item)) {
-                found += item.getAmount();
+            if (itemStack.getType() == Material.SPAWNER && !ItemStackUtil.spawnerMatches(itemStack, item)) {
                 continue;
             }
 
-            if (compareDurability && item.getDurability() == itemStack.getDurability()) {
-                found += item.getAmount();
+            if (compareDurability && item.getDurability() != itemStack.getDurability()) {
                 continue;
             }
 
@@ -397,32 +386,43 @@ public class InventoryUtil {
     }
 
     public static boolean removeMaterial(Player player, Material material, int amount) {
-        Inventory inv = player.getInventory();
-        int toRemove = amount;
+        PlayerInventory inv = player.getInventory();
+        ItemStack[] contents = inv.getContents();
+        int available = 0;
 
-        for (ItemStack item : inv.getContents()) {
+        for (ItemStack item : contents) {
             if (item == null || item.getType() != material) {
                 continue;
             }
 
-            int stackAmount = item.getAmount();
+            available += item.getAmount();
+        }
 
-            if (stackAmount <= toRemove) {
-                inv.removeItem(item);
-                toRemove -= stackAmount;
-            } else {
-                item.setAmount(stackAmount - toRemove);
-                toRemove = 0;
-            }
+        if (available < amount) {
+            return false;
+        }
 
-            if (toRemove > 0) {
+        int toRemove = amount;
+
+        for (int slot = 0; slot < contents.length && toRemove > 0; slot++) {
+            ItemStack item = contents[slot];
+
+            if (item == null || item.getType() != material) {
                 continue;
             }
 
-            break;
+            if (item.getAmount() <= toRemove) {
+                toRemove -= item.getAmount();
+                inv.setItem(slot, null);
+                continue;
+            }
+
+            item.setAmount(item.getAmount() - toRemove);
+            inv.setItem(slot, item);
+            toRemove = 0;
         }
 
-        return toRemove == 0;
+        return true;
     }
 
     public static String serializeInventory(@NotNull PlayerInventory inventory) {

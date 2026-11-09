@@ -44,27 +44,19 @@ public class MessageKey {
     }
 
     public Component get(Audience audience) {
-        Locale locale = audience instanceof Player player ? Locale.of(player.getLocale()) : Locale.ENGLISH;
+        if (audience instanceof Player player) {
+            return get(localeOf(player));
+        }
 
-        return get(locale);
+        return get(Locale.ENGLISH);
     }
 
     public Component get(@NotNull Player player, TagResolver.Single... placeholders) {
-        String localeString = player.getLocale();
-
-        if (localeString.isEmpty()) {
-            return get(Locale.ENGLISH);
-        }
-
-        String[] parts = localeString.split("_", 2);
-
-        Locale locale = Locale.of(parts[0]);
-
-        return get(locale, placeholders);
+        return get(localeOf(player), placeholders);
     }
 
     public Component get(@NotNull Locale locale, TagResolver.Single... placeholders) {
-        return MessageUtil.deserialize(values.getOrDefault(locale, values.get(Locale.ENGLISH)).getFirst(), placeholders);
+        return MessageUtil.deserialize(valuesFor(locale).getFirst(), placeholders);
     }
 
     public Component get(TagResolver.Single... placeholders) {
@@ -106,7 +98,27 @@ public class MessageKey {
     }
 
     public void send(@NotNull Audience audience, @NotNull Locale locale, TagResolver.Single... placeholders) {
-        values.getOrDefault(locale, values.get(Locale.ENGLISH)).forEach(message -> audience.sendMessage(MessageUtil.deserialize(message, placeholders)));
+        valuesFor(locale).forEach(message -> audience.sendMessage(MessageUtil.deserialize(message, placeholders)));
+    }
+
+    private List<String> valuesFor(Locale locale) {
+        List<String> localized = values.get(locale);
+
+        if (localized == null || localized.isEmpty()) {
+            return values.get(Locale.ENGLISH);
+        }
+
+        return localized;
+    }
+
+    private Locale localeOf(Player player) {
+        String localeString = player.getLocale();
+
+        if (localeString.isEmpty()) {
+            return Locale.ENGLISH;
+        }
+
+        return Locale.of(localeString.split("_", 2)[0]);
     }
 
 }

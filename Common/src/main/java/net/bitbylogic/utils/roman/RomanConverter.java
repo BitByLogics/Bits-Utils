@@ -31,13 +31,26 @@ public class RomanConverter {
     }
 
     public static String convert(int number, boolean smallCaps) {
-        if (number == letterMap.floorKey(number)) {
-            return letterMap.get(number);
+        if (number <= 0) {
+            return String.valueOf(number);
         }
 
-        int key = letterMap.floorKey(number);
-        String romanNumbers = letterMap.get(key) + convert(number - key);
-        return smallCaps ? SmallCapsConverter.convert(romanNumbers) : romanNumbers;
+        StringBuilder builder = new StringBuilder();
+        int remaining = number;
+
+        while (remaining > 0) {
+            int key = letterMap.floorKey(remaining);
+            builder.append(letterMap.get(key));
+            remaining -= key;
+        }
+
+        String romanNumbers = builder.toString();
+
+        if (!smallCaps) {
+            return romanNumbers;
+        }
+
+        return SmallCapsConverter.convert(romanNumbers);
     }
 
 }

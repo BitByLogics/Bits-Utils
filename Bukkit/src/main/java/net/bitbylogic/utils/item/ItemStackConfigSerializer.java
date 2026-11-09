@@ -44,7 +44,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
     @Override
     public Optional<ItemStack> deserialize(@NonNull ConfigurationSection section) {
-        return Optional.empty();
+        return deserialize(section, new TagResolver.Single[0]);
     }
 
     @Override
@@ -281,9 +281,9 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         if(consumableSection != null) {
             Consumable consumable = Consumable.consumable()
-                    .hasConsumeParticles(section.getBoolean("Particles", true))
-                    .consumeSeconds(section.getInt("Consume-Seconds", 3))
-                    .sound(Sound.valueOf(section.getString("Sound", "ENTITY_GENERIC_EAT")).getKey())
+                    .hasConsumeParticles(consumableSection.getBoolean("Particles", true))
+                    .consumeSeconds(consumableSection.getInt("Consume-Seconds", 3))
+                    .sound(Sound.valueOf(consumableSection.getString("Sound", "ENTITY_GENERIC_EAT")).getKey())
                     .build();
 
             stack.setData(DataComponentTypes.CONSUMABLE, consumable);
@@ -347,7 +347,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
 
         if (meta instanceof LeatherArmorMeta leatherArmorMeta
                 && !leatherArmorMeta.getColor().equals(Bukkit.getServer().getItemFactory().getDefaultLeatherColor())) {
-            section.set("Dye-Color", ColorUtil.colorToChatColor(leatherArmorMeta.getColor()));
+            section.set("Dye-Color", ColorUtil.colorToChatColor(leatherArmorMeta.getColor()).getName());
         }
 
         if (meta instanceof PotionMeta potionMeta

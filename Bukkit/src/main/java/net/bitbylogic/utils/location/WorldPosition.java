@@ -30,16 +30,20 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
         return new WorldPosition(split[0], Double.parseDouble(split[1]), Double.parseDouble(split[2]), Double.parseDouble(split[3]));
     }
 
+    private static int floor(double value) {
+        return (int) Math.floor(value);
+    }
+
     public int getChunkX() {
-        return (int) x >> 4;
+        return floor(x) >> 4;
     }
 
     public int getChunkZ() {
-        return (int) z >> 4;
+        return floor(z) >> 4;
     }
 
     public WorldPosition toWorldBlockPosition() {
-        return new WorldPosition(worldName, (int) x, (int) y, (int) z);
+        return new WorldPosition(worldName, floor(x), floor(y), floor(z));
     }
 
     public ChunkPosition toChunkPosition() {
@@ -60,7 +64,7 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
         }
 
         if(!strict) {
-            return worldName.equals(location.getWorld().getName()) && ((int) x) == location.getBlockX() && ((int) y) == location.getBlockY() && ((int) z) == location.getBlockZ();
+            return worldName.equals(location.getWorld().getName()) && floor(x) == location.getBlockX() && floor(y) == location.getBlockY() && floor(z) == location.getBlockZ();
         }
 
         return worldName.equals(location.getWorld().getName()) && x == location.getX() && y == location.getY() && z == location.getZ();
@@ -72,7 +76,7 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
 
     public boolean matches(@NonNull WorldPosition position, boolean strict) {
         if(!strict) {
-            return worldName.equals(position.worldName()) && ((int) x) == ((int) position.x()) && ((int) y) == ((int) position.y) && ((int) z) == ((int) position.z);
+            return worldName.equals(position.worldName()) && floor(x) == floor(position.x()) && floor(y) == floor(position.y()) && floor(z) == floor(position.z());
         }
 
         return worldName.equals(position.worldName()) && x == position.x() && y == position.y() && z == position.z();
@@ -89,7 +93,7 @@ public record WorldPosition(@NonNull String worldName, double x, double y, doubl
     }
 
     public long encode() {
-        return LocationUtil.encode((int) x, (int) y, (int) z);
+        return LocationUtil.encode(floor(x), floor(y), floor(z));
     }
 
     public static WorldPosition decode(@NonNull String worldName, long packed) {

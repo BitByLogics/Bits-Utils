@@ -93,16 +93,11 @@ public class StructuredMessageBuilder {
             pages.put(0, new ArrayList<>());
         }
 
-        List<Component> lastPage = pages.get(pages.size() - 1);
+        List<Component> page = pages.get(pages.size() - 1);
 
-        if(lastPage == null) {
-            return this;
-        }
-
-        List<Component> page = lastPage.size() < MAX_ENTRIES_PER_PAGE ? lastPage : pages.put(pages.size(), new ArrayList<>());
-
-        if(page == null) {
-            return this;
+        if(page.size() >= MAX_ENTRIES_PER_PAGE) {
+            page = new ArrayList<>();
+            pages.put(pages.size(), page);
         }
 
         page.add(MessageUtil.deserialize(message));

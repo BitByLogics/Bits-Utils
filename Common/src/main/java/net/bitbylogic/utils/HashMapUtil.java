@@ -21,7 +21,7 @@ public class HashMapUtil {
             builder.append(entrySeparator).append(k).append(valueSeparator).append(v);
         });
 
-        return builder.substring(1);
+        return builder.substring(entrySeparator.length());
     }
 
     public static String mapToString(HashMap<?, ?> map) {

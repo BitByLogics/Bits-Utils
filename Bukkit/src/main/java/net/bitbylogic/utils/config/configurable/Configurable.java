@@ -200,14 +200,18 @@ public class Configurable {
             return defaultValue;
         }
 
-        Object actualValue = config.get(path);
+        String finalPath = path;
+
+        if (globalPrefix != null) {
+            finalPath = globalPrefix + path;
+        }
+
+        Object actualValue = config.get(finalPath);
 
         if (actualValue == null && save && saveDefaults) {
-            String finalPath = globalPrefix == null ? path : globalPrefix + path;
-
             config.set(finalPath, defaultValue);
-            configValues.put(ConfigKeyData.of(finalPath, ""), defaultValue);
-            saveConfig();
+            configValues.put(ConfigKeyData.of(path, ""), defaultValue);
+            saveConfig(config);
         }
 
         try {
@@ -219,12 +223,10 @@ public class Configurable {
         return defaultValue;
     }
 
-    private void saveConfig() {
+    private void saveConfig(FileConfiguration config) {
         if (configFile == null) {
             return;
         }
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
         try {
             config.save(configFile);

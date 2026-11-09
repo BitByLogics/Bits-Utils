@@ -370,7 +370,7 @@ public class ItemStackUtil {
         }
 
         PersistentDataContainer dataContainer = meta.getPersistentDataContainer();
-        return dataContainer.getKeys().stream().filter(pKey -> dataContainer.has(pKey, type)).anyMatch(pKey -> dataContainer.get(pKey, type) == value);
+        return dataContainer.getKeys().stream().filter(pKey -> dataContainer.has(pKey, type)).anyMatch(pKey -> Objects.equals(dataContainer.get(pKey, type), value));
     }
 
     @Deprecated

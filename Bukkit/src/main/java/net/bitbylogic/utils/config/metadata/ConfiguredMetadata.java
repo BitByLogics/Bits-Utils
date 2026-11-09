@@ -44,34 +44,42 @@ public class ConfiguredMetadata {
 
     public <T> T getValueAsOrDefault(@NonNull String key, T defaultValue) {
         Object value = metadataMap.getValueAsOrDefault(key.toLowerCase(), defaultValue);
-
-        if (defaultValue instanceof Double && value instanceof Number) {
-            return (T) Double.valueOf(((Number) value).doubleValue());
-        }
-
-        if (defaultValue instanceof Integer && value instanceof Number) {
-            return (T) Integer.valueOf(((Number) value).intValue());
-        }
-
-        if(!(value instanceof String string) || defaultValue == null) {
-            return (T) value;
-        }
-
-        return (T) StringProcessor.findAndProcess(defaultValue.getClass(), string);
+        return convertValue(value, defaultValue);
     }
 
     public <T> T getDeepValueAsOrDefault(@NonNull String key, T defaultValue) {
         Object value = metadataDeepMap.getValueAsOrDefault(key.toLowerCase(), metadataMap.getValueAsOrDefault(key.toLowerCase(), defaultValue));
+        return convertValue(value, defaultValue);
+    }
 
-        if (defaultValue instanceof Double && value instanceof Number) {
-            return (T) Double.valueOf(((Number) value).doubleValue());
+    private <T> T convertValue(Object value, T defaultValue) {
+        if (value instanceof Number number) {
+            if (defaultValue instanceof Double) {
+                return (T) Double.valueOf(number.doubleValue());
+            }
+
+            if (defaultValue instanceof Float) {
+                return (T) Float.valueOf(number.floatValue());
+            }
+
+            if (defaultValue instanceof Integer) {
+                return (T) Integer.valueOf(number.intValue());
+            }
+
+            if (defaultValue instanceof Long) {
+                return (T) Long.valueOf(number.longValue());
+            }
+
+            if (defaultValue instanceof Short) {
+                return (T) Short.valueOf(number.shortValue());
+            }
+
+            if (defaultValue instanceof Byte) {
+                return (T) Byte.valueOf(number.byteValue());
+            }
         }
 
-        if (defaultValue instanceof Integer && value instanceof Number) {
-            return (T) Integer.valueOf(((Number) value).intValue());
-        }
-
-        if(!(value instanceof String string) || defaultValue == null) {
+        if (!(value instanceof String string) || defaultValue == null) {
             return (T) value;
         }
 
@@ -99,7 +107,7 @@ public class ConfiguredMetadata {
             return Optional.empty();
         }
 
-        return Optional.of(LocationUtil.stringToLocation(string));
+        return Optional.ofNullable(LocationUtil.stringToLocation(string));
     }
 
     public int getRandomIntInRange(int fallback) {

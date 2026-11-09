@@ -9,6 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class LocationUtil {
 
@@ -99,13 +100,17 @@ public class LocationUtil {
     }
 
     public static Location stringToLocation(String string, String separator) {
-        String[] splitArgs = string.split(separator);
+        String[] splitArgs = string.split(Pattern.quote(separator));
 
         if (splitArgs.length == 4) {
             return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]));
-        } else {
+        }
+
+        if (splitArgs.length == 6) {
             return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]), Float.parseFloat(splitArgs[4]), Float.parseFloat(splitArgs[5]));
         }
+
+        return null;
     }
 
     public static boolean isLocationString(String string) {
@@ -113,7 +118,8 @@ public class LocationUtil {
     }
 
     public static boolean isLocationString(String string, String separator) {
-        return string.split(separator).length >= 4;
+        int parts = string.split(Pattern.quote(separator)).length;
+        return parts == 4 || parts == 6;
     }
 
     public static boolean matches(Location location, Location other) {
@@ -145,7 +151,13 @@ public class LocationUtil {
                 return;
             }
 
-            data.put(stringToLocation(key.getKey(), "._."), dataContainer.get(key, PersistentDataType.TAG_CONTAINER));
+            Location location = stringToLocation(key.getKey(), "._.");
+
+            if (location == null) {
+                return;
+            }
+
+            data.put(location, dataContainer.get(key, PersistentDataType.TAG_CONTAINER));
         });
 
         return data;
@@ -190,7 +202,7 @@ public class LocationUtil {
         int currentY = world.getMaxHeight();
         int minY = world.getMinHeight();
 
-        world.getChunkAt(x, z);
+        world.getChunkAt(x >> 4, z >> 4);
 
         for (int y = currentY; y > minY; y--) {
             if (world.getBlockAt(x, y, z).getType().isAir()) {

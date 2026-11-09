@@ -45,7 +45,7 @@ public class ContextRegistry {
     }
 
     public static Optional<?> getAndRetrieve(@NonNull Context context, @NonNull String id) {
-        return get(id).map(context::get);
+        return ContextRegistry.<Object>get(id).flatMap(context::get);
     }
 
     public static <T> Optional<T> getAndRetrieve(@NonNull Context context, @NonNull String id, @NonNull Class<T> type) {

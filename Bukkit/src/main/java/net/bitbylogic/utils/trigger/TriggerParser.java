@@ -55,10 +55,20 @@ public class TriggerParser {
         Optional<Trigger> resolved = TriggerRegistry.get(id).map(provider -> provider.provide(metadata));
 
         if (resolved.isPresent()) {
+            if (action != null) {
+                resolved.get().setAction(action);
+            }
+
             return resolved;
         }
 
-        return Optional.of(new DeferredTrigger(id, metadata));
+        DeferredTrigger deferredTrigger = new DeferredTrigger(id, metadata);
+
+        if (action != null) {
+            deferredTrigger.whenAvailable(trigger -> trigger.setAction(action));
+        }
+
+        return Optional.of(deferredTrigger);
     }
 
 }

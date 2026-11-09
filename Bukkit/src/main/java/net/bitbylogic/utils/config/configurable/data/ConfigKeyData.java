@@ -1,10 +1,12 @@
 package net.bitbylogic.utils.config.configurable.data;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
+@EqualsAndHashCode
 @Getter
 public class ConfigKeyData {
 
