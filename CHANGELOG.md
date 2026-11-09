@@ -41,6 +41,8 @@
 - `ConfigSerializer.deserialize(section, placeholders...)` is the abstract method. `deserialize(section)` delegates to it.
 
 **Other**
+- `bits-utils-bukkit` is no longer shaded. It depends on `bits-utils-common` like any library.
+- `DefaultConfigWrapper` unwraps a map section into a `LinkedHashMap` of items. It used to try to instantiate the requested class, which never worked for `Map`.
 - `StringUtil.join` no longer throws. `StringUtil` reading time is in seconds.
 - Progress bars show N filled symbols for progress N.
 - Hologram update loop, cooldown callbacks and chat triggers use Paper's region, entity and global schedulers.
@@ -51,9 +53,13 @@
 - `LocationUtil.persistentKey`, which builds valid keys for world names with capitals or spaces.
 - `ObjectReference.get()` now uses its cache. `invalidateCache()` and `refresh()` reset it.
 - `ColorUtil` console formatting codes and legacy hex.
+- Source and javadoc jars, JaCoCo coverage reports and SpotBugs checks on every build.
 - Items made with `ItemBuilder` are non-italic by default. An explicit `<italic>` is kept.
 
 ### Fixed
+- `FileUtil.deleteDirectory` logs a warning when a file cannot be deleted.
+- `ConfigurableMetadata` no longer re-reads its section and file between null checks.
+- `ItemStackConfigSerializer` rejects air as a material.
 - `ParsedAction` and `ParsedCondition` no longer mutate the caller's context.
 - `ItemStackUtil.setLore` no longer mutates the list it is given.
 - Event triggers register once and unregister on deactivate.

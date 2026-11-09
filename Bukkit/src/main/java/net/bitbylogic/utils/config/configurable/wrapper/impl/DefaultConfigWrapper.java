@@ -3,14 +3,13 @@ package net.bitbylogic.utils.config.configurable.wrapper.impl;
 import lombok.NonNull;
 import net.bitbylogic.utils.config.configurable.wrapper.ConfigWrapper;
 import net.bitbylogic.utils.item.ItemStackUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.logging.Level;
 
 public class DefaultConfigWrapper implements ConfigWrapper<Object> {
 
@@ -56,25 +55,20 @@ public class DefaultConfigWrapper implements ConfigWrapper<Object> {
         }
 
         if(requestedClass.isAssignableFrom(Map.class) && wrappedObject instanceof ConfigurationSection) {
-            try {
-                Map<String, ItemStack> map = (Map<String, ItemStack>) requestedClass.newInstance();
+            ConfigurationSection wrappedSection = (ConfigurationSection) wrappedObject;
+            Map<String, ItemStack> map = new LinkedHashMap<>();
 
-                for (String key : ((ConfigurationSection) wrappedObject).getKeys(false)) {
-                    ConfigurationSection itemSection = ((ConfigurationSection) wrappedObject).getConfigurationSection(key);
+            for (String key : wrappedSection.getKeys(false)) {
+                ConfigurationSection itemSection = wrappedSection.getConfigurationSection(key);
 
-                    if (itemSection == null) {
-                        continue;
-                    }
-
-                    map.put(key, ItemStackUtil.getFromConfig(itemSection));
+                if (itemSection == null) {
+                    continue;
                 }
 
-                return map;
-            } catch (InstantiationException | IllegalAccessException e) {
-                Bukkit.getLogger().log(Level.SEVERE, "Failed to unwrap map of type " + requestedClass.getName(), e);
+                map.put(key, ItemStackUtil.getFromConfig(itemSection));
             }
 
-            return null;
+            return map;
         }
 
         return wrappedObject;

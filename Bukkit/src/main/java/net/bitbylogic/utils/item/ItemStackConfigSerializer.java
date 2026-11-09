@@ -52,7 +52,7 @@ public class ItemStackConfigSerializer implements ConfigSerializer<ItemStack> {
         String materialName = section.getString("Material", "BARRIER");
         Material material = Material.matchMaterial(materialName);
 
-        if (material == null || !material.isItem()) {
+        if (material == null || !material.isItem() || material.isAir()) {
             warn("Invalid material '" + materialName + "'.");
             return Optional.empty();
         }

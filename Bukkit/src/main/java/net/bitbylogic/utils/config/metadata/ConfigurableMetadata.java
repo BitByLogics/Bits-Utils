@@ -70,8 +70,10 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
     public ConfigurableMetadata withDefault(String key, Object value) {
         pendingDefaults.put(key, value);
 
-        if (getSection() != null) {
-            if(getSection().isSet(key)) {
+        ConfigurationSection section = getSection();
+
+        if (section != null) {
+            if(section.isSet(key)) {
                 pendingDefaults.remove(key);
                 return this;
             }
@@ -126,7 +128,9 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
     }
 
     public <T> void setValue(String key, @Nullable T value, boolean save) {
-        if (getSection() == null) {
+        ConfigurationSection section = getSection();
+
+        if (section == null) {
             throw new IllegalStateException("Cannot set value without a configuration section");
         }
 
@@ -135,7 +139,7 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
         getMetadataMap().put(loweredKey, value);
         getMetadataDeepMap().put(loweredKey, value);
 
-        getSection().set(key, convertForConfig(value));
+        section.set(key, convertForConfig(value));
 
         if (!save || configFile == null) {
             return;
@@ -145,7 +149,9 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
     }
 
     public void removeValue(String key, boolean save) {
-        if (getSection() == null) {
+        ConfigurationSection section = getSection();
+
+        if (section == null) {
             throw new IllegalStateException("Cannot remove value without a configuration section");
         }
 
@@ -154,7 +160,7 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
         getMetadataMap().remove(loweredKey);
         getMetadataDeepMap().remove(loweredKey);
 
-        getSection().set(key, null);
+        section.set(key, null);
 
         if (!save || configFile == null) {
             return;
@@ -169,7 +175,11 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
         }
 
         this.configFile = configFile;
-        configFile.getParentFile().mkdirs();
+        File parent = configFile.getParentFile();
+
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            Bukkit.getLogger().severe("Failed to create directory " + parent);
+        }
 
         if(!configFile.exists()) {
             try {
@@ -181,8 +191,10 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
 
         super.load(YamlConfiguration.loadConfiguration(configFile));
 
+        ConfigurationSection loaded = getSection();
+
         for (Map.Entry<String, Object> entry : pendingDefaults.entrySet()) {
-            if(getSection() != null && getSection().isSet(entry.getKey())) {
+            if(loaded != null && loaded.isSet(entry.getKey())) {
                 continue;
             }
 
@@ -221,41 +233,43 @@ public class ConfigurableMetadata extends ConfiguredMetadata {
      * Reload directly from a YAML file's root.
      */
     public void reloadFromFile() {
-        if (configFile == null || getSection() == null) {
+        File file = configFile;
+        ConfigurationSection current = getSection();
+
+        if (file == null || current == null) {
             return;
         }
 
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 
-        String path = getSection().getCurrentPath();
+        String path = current.getCurrentPath();
         ConfigurationSection sectionToLoad = (path == null || path.isEmpty()) ? config : config.getConfigurationSection(path);
 
         if (sectionToLoad == null) {
             return;
         }
 
-        load(configFile, sectionToLoad);
+        load(file, sectionToLoad);
     }
 
     public void saveToFile() {
-        if (configFile == null) {
+        File file = configFile;
+        ConfigurationSection current = getSection();
+
+        if (file == null || current == null) {
             return;
         }
 
         try {
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 
-            if (getSection() == null) {
-                return;
+            for (String key : current.getKeys(true)) {
+                config.set(key, current.get(key));
             }
 
-            for (String key : getSection().getKeys(true)) {
-                config.set(key, getSection().get(key));
-            }
-
-            config.save(configFile);
+            config.save(file);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to save configuration to " + configFile, e);
+            throw new RuntimeException("Failed to save configuration to " + file, e);
         }
     }
 }

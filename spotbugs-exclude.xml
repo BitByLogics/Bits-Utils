@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Registries, managers and builders hand out shared handles by design. -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Lombok null checks in constructors. -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!-- ItemStack.setItemMeta mutates the stack. -->
+    <Match>
+        <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+    </Match>
+
+    <!-- Paper marks ItemStack.getItemMeta nullable, but it is only null for air stacks. -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Or>
+            <Class name="net.bitbylogic.utils.item.ItemBuilder"/>
+            <Class name="net.bitbylogic.utils.item.ItemStackUtil"/>
+            <Class name="net.bitbylogic.utils.item.ItemStackConfigSerializer"/>
+            <Class name="net.bitbylogic.utils.inventory.InventoryUtil"/>
+            <Class name="net.bitbylogic.utils.inventory.InventorySerializer"/>
+        </Or>
+    </Match>
+
+    <!-- Message groups register their keys into static fields. -->
+    <Match>
+        <Class name="net.bitbylogic.utils.message.progressbar.ProgressBarMessages"/>
+    </Match>
+
+    <!-- Bukkit.getServer() is null before a server exists, which the unit tests rely on. -->
+    <Match>
+        <Class name="net.bitbylogic.utils.message.PlaceholderUtil"/>
+        <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
+    </Match>
+
+    <!-- Lombok generates the null check on the varargs parameter. -->
+    <Match>
+        <Class name="net.bitbylogic.utils.config.configurable.Configurable"/>
+        <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE"/>
+    </Match>
+
+    <!-- Equality of configurable metadata is identity based. -->
+    <Match>
+        <Class name="net.bitbylogic.utils.config.metadata.ConfigurableMetadata"/>
+        <Bug pattern="EQ_DOESNT_OVERRIDE_EQUALS"/>
+    </Match>
+</FindBugsFilter>

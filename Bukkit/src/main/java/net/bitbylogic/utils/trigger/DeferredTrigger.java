@@ -33,8 +33,10 @@ public class DeferredTrigger implements Trigger {
         }
 
         synchronized (lock) {
-            if (delegate != null) {
-                return Optional.of(delegate);
+            Trigger existing = delegate;
+
+            if (existing != null) {
+                return Optional.of(existing);
             }
 
             Optional<TriggerProvider> provider = TriggerRegistry.get(targetId);
@@ -49,8 +51,10 @@ public class DeferredTrigger implements Trigger {
                 return Optional.empty();
             }
 
-            if (action != null) {
-                provided.setAction(action);
+            TriggerAction pendingAction = action;
+
+            if (pendingAction != null) {
+                provided.setAction(pendingAction);
             }
 
             delegate = provided;
@@ -83,8 +87,10 @@ public class DeferredTrigger implements Trigger {
         synchronized (lock) {
             this.action = action;
 
-            if (delegate != null) {
-                delegate.setAction(action);
+            Trigger resolved = delegate;
+
+            if (resolved != null) {
+                resolved.setAction(action);
             }
         }
     }
