@@ -1,5 +1,4 @@
 <div align="center">
-<img src="https://i.imgur.com/hy4lp6A.jpeg" style="width: 20%;" alt="Icon">
 
 ## Bit's Utils
 [![Build](https://img.shields.io/github/actions/workflow/status/BitByLogics/Bits-Utils/maven.yml?branch=master)](https://github.com/BitByLogics/Bits-Utils/actions)
